@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-primary: theme('colors.primary.900');
+    --text-primary: theme('colors.primary.900');
+  }
+
+  .dark {
+    --bg-primary: theme('colors.primary.800');
+    --text-primary: theme('colors.primary.300');
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-white font-semibold py-3 px-6 rounded-lg hover:opacity-90 transition;
+  }
+
+  .card {
+    @apply bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8;
+  }
+}
+
+:root {
+  /* CodeBridge Brand Colors */
+  --brand-primary: #1f3b4d;   /* dark green */
+  --brand-primary-hover: #294b63;
+  --brand-secondary: #8a8a8a; /* light gray */
+}
+
+
+@layer components {
+  .bg-primary {
+    background-color: var(--brand-primary);
+  }
+
+  .text-primary {
+    color: var(--brand-primary);
+  }
+
+  .border-primary {
+    border-color: var(--brand-primary);
+  }
+
+  .bg-secondary {
+    background-color: var(--brand-secondary);
+  }
+
+  .text-secondary {
+    color: var(--brand-secondary);
+  }
+
+  .btn-primary {
+    background-color: var(--brand-primary);
+    color: #fff;
+    font-weight: 600;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+  }
+
+  .btn-primary:hover {
+    background-color: var(--brand-primary-hover);
+    transform: translateY(-2px);
+  }
+
+  .btn-secondary {
+    background-color: var(--brand-secondary);
+    color: #fff;
+    font-weight: 600;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(31, 59, 77, 0.15);
+  }
+}

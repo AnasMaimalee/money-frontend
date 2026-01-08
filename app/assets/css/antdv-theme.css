@@ -1,0 +1,23 @@
+/* ===============================
+   CodeBridge Ant Design Theme
+   =============================== */
+
+:root {
+  /* Primary (Dark Green) */
+  --ant-primary-color: #1f3b4d;
+  --ant-primary-color-hover: #294b63;
+  --ant-primary-color-active: #162a36;
+  --ant-primary-color-outline: rgba(31, 59, 77, 0.2);
+
+  /* Link color */
+  --ant-link-color: #1f3b4d;
+  --ant-link-hover-color: #294b63;
+
+  /* Border & focus */
+  --ant-border-color-base: #d9d9d9;
+  --ant-input-hover-border-color: #1f3b4d;
+  --ant-input-focus-border-color: #1f3b4d;
+
+  /* Secondary (Light Gray) */
+  --ant-text-color-secondary: #8a8a8a;
+}
