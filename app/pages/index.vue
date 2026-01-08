@@ -14,7 +14,7 @@ const services = [
     <!-- HERO -->
     <section class="bg-primary text-white py-28 text-center">
       <h1 class="text-5xl md:text-6xl font-bold mb-6">
-        JAMB Fortal
+        EDUOASIS
       </h1>
       <p class="text-xl max-w-3xl mx-auto opacity-90 mb-10">
         Secure and reliable platform for JAMB services in Nigeria.

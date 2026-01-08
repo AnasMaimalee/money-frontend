@@ -22,6 +22,8 @@ const currentService = ref<any>(null)
   { title: 'Service Name', dataIndex: 'name', key: 'name', slots: { customRender: 'name' }, width: 400 },
   { title: 'Customer Price', key: 'customerPrice', width: 180, align: 'right', slots: { customRender: 'customerPrice' } },
   { title: 'Admin Payout', key: 'adminPayout', width: 150, align: 'right', slots: { customRender: 'adminPayout' } },
+  { title: 'Platform Profit', key: 'platfromProfit', width: 150, align: 'right', slots: { customRender: 'platformProfit' } },
+
   { title: 'Action', key: 'actions', width: 150, slots: { customRender: 'actions' } }
 ]
 
@@ -159,7 +161,14 @@ onMounted(fetchServices)
   </div>
 </template>
 
-
+<template #platformProfit="{ record }">
+  <div class="text-right font-black text-2xl text-green-600 mb-1">
+    ₦{{ Number(record.platform_profit || 0).toLocaleString() }}
+  </div>
+  <div class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full inline-block w-fit">
+    Admin Payout
+  </div>
+</template>
     <template #actions="{ record }">
       <Button 
         type="primary" 

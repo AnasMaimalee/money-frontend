@@ -33,11 +33,13 @@ const loading = ref(false)
 /* Approve modal */
 const approveModalVisible = ref(false)
 const currentApproveId = ref<string | null>(null)
+const approveLoading = ref(false) // ✅ APPROVE LOADER
 
 /* Reject modal */
 const rejectModalVisible = ref(false)
 const currentRejectId = ref<string | null>(null)
 const rejectReason = ref('')
+const rejectLoading = ref(false) // ✅ REJECT LOADER
 
 /* Pagination */
 const pagination = ref({
@@ -73,6 +75,8 @@ const openApproveModal = (id: string) => {
 const handleApprove = async () => {
   if (!currentApproveId.value) return
 
+  approveLoading.value = true // ✅ SHOW LOADER
+
   try {
     await $api(`/services/jamb-result/${currentApproveId.value}/approve`, { 
       method: 'POST' 
@@ -83,6 +87,8 @@ const handleApprove = async () => {
     fetchRequests()
   } catch (err: any) {
     message.error(err.data?.message || 'Approval failed')
+  } finally {
+    approveLoading.value = false // ✅ HIDE LOADER
   }
 }
 
@@ -99,6 +105,8 @@ const handleReject = async () => {
     return
   }
 
+  rejectLoading.value = true // ✅ SHOW LOADER
+
   try {
     await $api(`/services/jamb-result/${currentRejectId.value}/reject`, {
       method: 'POST',
@@ -111,11 +119,13 @@ const handleReject = async () => {
     fetchRequests()
   } catch (err: any) {
     message.error(err.data?.message || 'Rejection failed')
+  } finally {
+    rejectLoading.value = false // ✅ HIDE LOADER
   }
 }
 
-/* ✅ FIXED PDF DOWNLOAD */
-const downloadResultPDF = async (filePath: string, filename = 'jamb-result.pdf') => {
+/* ✅ UNIVERSAL FILE DOWNLOAD (PDF + IMAGES) */
+const downloadFile = async (filePath: string, filename = 'jamb-result') => {
   if (!filePath) {
     message.warning('No result file available')
     return
@@ -132,7 +142,6 @@ const downloadResultPDF = async (filePath: string, filename = 'jamb-result.pdf')
       method: 'GET',
       headers: {
         'Authorization': token ? `Bearer ${token}` : '',
-        'Accept': 'application/pdf',
       },
     })
 
@@ -140,27 +149,47 @@ const downloadResultPDF = async (filePath: string, filename = 'jamb-result.pdf')
       throw new Error(`Server error: ${response.status} ${response.statusText}`)
     }
 
-    const contentType = response.headers.get('content-type')
-    if (!contentType?.includes('pdf')) {
-      throw new Error('File is not a valid PDF format')
-    }
-
+    const contentType = response.headers.get('content-type') || ''
     const contentLength = response.headers.get('content-length')
+    
     if (contentLength && parseInt(contentLength) < 1000) {
       throw new Error('File appears to be empty or corrupted')
     }
 
     const blob = await response.blob()
+    
+    // ✅ DYNAMIC FILENAME & EXTENSION
+    let downloadFilename = filename
+    if (contentType.includes('pdf')) {
+      downloadFilename = `${filename}.pdf`
+    } else if (contentType.includes('image/')) {
+      const imageExt = contentType.split('/')[1] || 'png'
+      downloadFilename = `${filename}.${imageExt}`
+    } else {
+      const pathParts = filePath.split('.')
+      if (pathParts.length > 1) {
+        downloadFilename = `${filename}.${pathParts[pathParts.length - 1]}`
+      } else {
+        downloadFilename = `${filename}.file`
+      }
+    }
+
+    // ✅ VALIDATE FILE TYPE
+    const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if (!validTypes.some(type => contentType.includes(type.split('/')[1]))) {
+      throw new Error(`Unsupported file type: ${contentType}`)
+    }
+
     const downloadUrl = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = downloadUrl
-    link.download = filename
+    link.download = downloadFilename
     document.body.appendChild(link)
     link.click()
     
     document.body.removeChild(link)
     window.URL.revokeObjectURL(downloadUrl)
-    message.success('PDF downloaded successfully')
+    message.success(`${downloadFilename} downloaded successfully`)
   } catch (error: any) {
     console.error('Download error:', error)
     message.error(`Download failed: ${error.message}`)
@@ -174,6 +203,7 @@ const columns = [
   { title: 'Service', key: 'service', width: 280, slots: { customRender: 'serviceCell' } },
   { title: 'Pricing', key: 'pricing', width: 200, align: 'right', slots: { customRender: 'pricingCell' } },
   { title: 'Status', dataIndex: 'status', width: 120, slots: { customRender: 'statusCell' } },
+  { title: 'Is Paid?', dataIndex: 'is_paid', width: 100, slots: { customRender: 'isPaidCell' } }, // ✅ NEW
   { title: 'Taken By', key: 'taken', width: 180, slots: { customRender: 'takenCell' } },
   { title: 'Result File', key: 'file', width: 150, slots: { customRender: 'fileCell' } },
   { title: 'Date', dataIndex: 'created_at', width: 170, slots: { customRender: 'dateCell' } },
@@ -200,7 +230,7 @@ onMounted(fetchRequests)
         :loading="loading"
         @click="fetchRequests"
       >
-        Refresh
+        <ReloadOutlined /> Refresh
       </Button>
     </div>
 
@@ -212,7 +242,7 @@ onMounted(fetchRequests)
         :loading="loading"
         :pagination="pagination"
         row-key="id"
-        :scroll="{ x: 1500 }"
+        :scroll="{ x: 1600 }"
       >
         <!-- Index -->
         <template #indexCell="{ index }">
@@ -256,15 +286,25 @@ onMounted(fetchRequests)
         <template #statusCell="{ record }">
           <Tag
             :color="
-              record.status === 'pending'
-                ? 'orange'
-                : record.status === 'approved'
+              record.status === 'completed' || record.status === 'approved'
                 ? 'green'
+                : record.status === 'processing' || record.status === 'proceeding' || record.status === 'pending'
+                ? 'orange'
                 : 'red'
             "
             class="font-bold px-4 py-1"
           >
             {{ record.status.toUpperCase() }}
+          </Tag>
+        </template>
+
+        <!-- ✅ IS PAID COLUMN -->
+        <template #isPaidCell="{ record }">
+          <Tag
+            :color="record.is_paid ? 'green' : 'red'"
+            class="font-bold px-4 py-1"
+          >
+            {{ record.is_paid ? 'PAID' : 'UNPAID' }}
           </Tag>
         </template>
 
@@ -277,15 +317,15 @@ onMounted(fetchRequests)
           <span v-else class="text-gray-400 text-sm">—</span>
         </template>
 
-        <!-- File -->
+        <!-- ✅ FILE DOWNLOAD (PDF + Images) -->
         <template #fileCell="{ record }">
           <Button
             v-if="record.result_file"
             type="primary"
             size="small"
-            @click="downloadResultPDF(record.result_file, `jamb-result-${record.registration_number || record.id}.pdf`)"
+            @click="downloadFile(record.result_file, `jamb-result-${record.registration_number || record.id}`)"
           >
-            Download PDF
+            <DownloadOutlined /> Download
           </Button>
           <span v-else class="text-gray-400 text-sm">No file</span>
         </template>
@@ -297,23 +337,25 @@ onMounted(fetchRequests)
           </span>
         </template>
 
-        <!-- Actions - NOW WITH MODALS (NO POPCONFIRM) -->
+        <!-- Actions -->
         <template #actionsCell="{ record }">
           <div class="flex justify-center gap-2">
-            <template v-if="record.status === 'pending'">
-              <!-- APPROVE BUTTON - OPENS MODAL -->
+            <template v-if="record.status === 'completed'">
+              <!-- ✅ APPROVE WITH LOADER -->
               <Button
                 type="primary"
                 size="small"
+                :loading="approveLoading"
                 @click="openApproveModal(record.id)"
               >
                 <CheckOutlined /> Approve
               </Button>
 
-              <!-- REJECT BUTTON - OPENS MODAL -->
+              <!-- ✅ REJECT WITH LOADER -->
               <Button
                 danger
                 size="small"
+                :loading="rejectLoading"
                 @click="openRejectModal(record.id)"
               >
                 <CloseOutlined /> Reject
@@ -335,12 +377,13 @@ onMounted(fetchRequests)
       </Table>
     </Card>
 
-    <!-- ✅ APPROVE CONFIRMATION MODAL -->
+    <!-- ✅ APPROVE MODAL WITH LOADER -->
     <Modal
       v-model:visible="approveModalVisible"
       title="Confirm Approval"
       ok-text="Approve Request"
       cancel-text="Cancel"
+      :ok-button-props="{ loading: approveLoading }"
       @ok="handleApprove"
     >
       <p>Are you sure you want to approve this JAMB Result request?</p>
@@ -349,12 +392,13 @@ onMounted(fetchRequests)
       </p>
     </Modal>
 
-    <!-- ✅ REJECT MODAL WITH REASON -->
+    <!-- ✅ REJECT MODAL WITH LOADER -->
     <Modal
       v-model:visible="rejectModalVisible"
       title="Reject Request"
       ok-text="Reject Request"
       cancel-text="Cancel"
+      :ok-button-props="{ loading: rejectLoading }"
       @ok="handleReject"
     >
       <div>

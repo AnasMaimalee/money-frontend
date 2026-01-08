@@ -5,7 +5,7 @@ definePageMeta({
   roles: ['superadmin'],
 })
 
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import {
   Table,
   Button,
@@ -21,6 +21,7 @@ import {
   CloseOutlined,
   ReloadOutlined,
   DownloadOutlined,
+  SearchOutlined,
 } from '@ant-design/icons-vue'
 
 const { $api } = useNuxtApp()
@@ -29,26 +30,43 @@ const config = useRuntimeConfig()
 /* ================= STATE ================= */
 const requests = ref<any[]>([])
 const loading = ref(false)
+const searchText = ref('')
 
 /* Approve modal */
 const approveModalVisible = ref(false)
 const currentApproveId = ref<string | null>(null)
+const approveLoading = ref(false)
 
 /* Reject modal */
 const rejectModalVisible = ref(false)
 const currentRejectId = ref<string | null>(null)
 const rejectReason = ref('')
+const rejectLoading = ref(false)
+
+/* ✅ SEARCH FILTER */
+const filteredRequests = computed(() => {
+  if (!searchText.value.trim()) return requests.value
+  
+  const query = searchText.value.toLowerCase()
+  return requests.value.filter(record => 
+    record.user?.name?.toLowerCase().includes(query) ||
+    record.email?.toLowerCase().includes(query) ||
+    record.registration_number?.toLowerCase().includes(query) ||
+    record.service?.name?.toLowerCase().includes(query) ||
+    record.status?.toLowerCase().includes(query)
+  )
+})
 
 /* Pagination */
-const pagination = ref({
+const pagination = computed(() => ({
   current: 1,
   pageSize: 15,
-  total: 0,
+  total: filteredRequests.value.length,
   showSizeChanger: true,
   showQuickJumper: true,
   showTotal: (total: number, range: number[]) =>
     `${range[0]}-${range[1]} of ${total} requests`,
-})
+}))
 
 /* ================= API ================= */
 const fetchRequests = async () => {
@@ -56,7 +74,6 @@ const fetchRequests = async () => {
   try {
     const res = await $api('/services/jamb-admission-result-notification/all')
     requests.value = Array.isArray(res) ? res : res.data || []
-    pagination.value.total = requests.value.length
   } catch (err) {
     message.error('Failed to load requests')
   } finally {
@@ -73,6 +90,8 @@ const openApproveModal = (id: string) => {
 const handleApprove = async () => {
   if (!currentApproveId.value) return
 
+  approveLoading.value = true
+
   try {
     await $api(`/services/jamb-admission-result-notification/${currentApproveId.value}/approve`, { 
       method: 'POST' 
@@ -83,6 +102,8 @@ const handleApprove = async () => {
     fetchRequests()
   } catch (err: any) {
     message.error(err.data?.message || 'Approval failed')
+  } finally {
+    approveLoading.value = false
   }
 }
 
@@ -99,6 +120,8 @@ const handleReject = async () => {
     return
   }
 
+  rejectLoading.value = true
+
   try {
     await $api(`/services/jamb-admission-result-notification/${currentRejectId.value}/reject`, {
       method: 'POST',
@@ -111,11 +134,13 @@ const handleReject = async () => {
     fetchRequests()
   } catch (err: any) {
     message.error(err.data?.message || 'Rejection failed')
+  } finally {
+    rejectLoading.value = false
   }
 }
 
-/* ✅ FIXED PDF DOWNLOAD */
-const downloadResultPDF = async (filePath: string, filename = 'jamb-admission-status.pdf') => {
+/* ✅ UNIVERSAL FILE DOWNLOAD (PDF + IMAGES) */
+const downloadFile = async (filePath: string, filename = 'jamb-notification') => {
   if (!filePath) {
     message.warning('No result file available')
     return
@@ -132,7 +157,6 @@ const downloadResultPDF = async (filePath: string, filename = 'jamb-admission-st
       method: 'GET',
       headers: {
         'Authorization': token ? `Bearer ${token}` : '',
-        'Accept': 'application/pdf',
       },
     })
 
@@ -140,27 +164,45 @@ const downloadResultPDF = async (filePath: string, filename = 'jamb-admission-st
       throw new Error(`Server error: ${response.status} ${response.statusText}`)
     }
 
-    const contentType = response.headers.get('content-type')
-    if (!contentType?.includes('pdf')) {
-      throw new Error('File is not a valid PDF format')
-    }
-
+    const contentType = response.headers.get('content-type') || ''
     const contentLength = response.headers.get('content-length')
+    
     if (contentLength && parseInt(contentLength) < 1000) {
       throw new Error('File appears to be empty or corrupted')
     }
 
     const blob = await response.blob()
+    
+    let downloadFilename = filename
+    if (contentType.includes('pdf')) {
+      downloadFilename = `${filename}.pdf`
+    } else if (contentType.includes('image/')) {
+      const imageExt = contentType.split('/')[1] || 'png'
+      downloadFilename = `${filename}.${imageExt}`
+    } else {
+      const pathParts = filePath.split('.')
+      if (pathParts.length > 1) {
+        downloadFilename = `${filename}.${pathParts[pathParts.length - 1]}`
+      } else {
+        downloadFilename = `${filename}.file`
+      }
+    }
+
+    const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if (!validTypes.some(type => contentType.includes(type.split('/')[1]))) {
+      throw new Error(`Unsupported file type: ${contentType}`)
+    }
+
     const downloadUrl = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = downloadUrl
-    link.download = filename
+    link.download = downloadFilename
     document.body.appendChild(link)
     link.click()
     
     document.body.removeChild(link)
     window.URL.revokeObjectURL(downloadUrl)
-    message.success('PDF downloaded successfully')
+    message.success(`${downloadFilename} downloaded successfully`)
   } catch (error: any) {
     console.error('Download error:', error)
     message.error(`Download failed: ${error.message}`)
@@ -174,6 +216,7 @@ const columns = [
   { title: 'Service', key: 'service', width: 280, slots: { customRender: 'serviceCell' } },
   { title: 'Pricing', key: 'pricing', width: 200, align: 'right', slots: { customRender: 'pricingCell' } },
   { title: 'Status', dataIndex: 'status', width: 120, slots: { customRender: 'statusCell' } },
+  { title: 'Is Paid?', dataIndex: 'is_paid', width: 100, slots: { customRender: 'isPaidCell' } },
   { title: 'Taken By', key: 'taken', width: 180, slots: { customRender: 'takenCell' } },
   { title: 'Result File', key: 'file', width: 150, slots: { customRender: 'fileCell' } },
   { title: 'Date', dataIndex: 'created_at', width: 170, slots: { customRender: 'dateCell' } },
@@ -185,34 +228,51 @@ onMounted(fetchRequests)
 
 <template>
   <div class="p-6 space-y-6">
-    <!-- Header -->
-    <div class="flex justify-between items-center">
+    <!-- ✅ HEADER WITH SEARCH -->
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
       <div>
         <Typography.Title level="2" class="!m-0">
           JAMB Admission Result Notification Requests
         </Typography.Title>
         <Typography.Text type="secondary">
-          {{ pagination.total }} total requests
+          {{ filteredRequests.length }} of {{ requests.length }} total requests
         </Typography.Text>
       </div>
-      <Button
-        type="primary"
-        :loading="loading"
-        @click="fetchRequests"
-      >
-        Refresh
-      </Button>
+      
+      <!-- ✅ FIXED SEARCH + REFRESH -->
+      <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+        <Input
+          v-model:value="searchText"
+          placeholder="Search name, email, reg#, service, status..."
+          allow-clear
+          @input="searchText"
+          class="w-full lg:w-80"
+        />
+        <Button
+          type="primary"
+          :loading="loading"
+          @click="fetchRequests"
+        >
+          <ReloadOutlined /> Refresh
+        </Button>
+        <Button
+          v-if="searchText"
+          @click="searchText = ''"
+        >
+          Clear
+        </Button>
+      </div>
     </div>
 
     <!-- Table -->
     <Card>
       <Table
         :columns="columns"
-        :data-source="requests"
+        :data-source="filteredRequests"
         :loading="loading"
         :pagination="pagination"
         row-key="id"
-        :scroll="{ x: 1500 }"
+        :scroll="{ x: 1600 }"
       >
         <!-- Index -->
         <template #indexCell="{ index }">
@@ -256,15 +316,25 @@ onMounted(fetchRequests)
         <template #statusCell="{ record }">
           <Tag
             :color="
-              record.status === 'pending'
-                ? 'orange'
-                : record.status === 'approved'
+              record.status === 'completed' || record.status === 'approved'
                 ? 'green'
+                : record.status === 'processing' || record.status === 'proceeding' || record.status === 'pending'
+                ? 'orange'
                 : 'red'
             "
             class="font-bold px-4 py-1"
           >
             {{ record.status.toUpperCase() }}
+          </Tag>
+        </template>
+
+        <!-- Is Paid -->
+        <template #isPaidCell="{ record }">
+          <Tag
+            :color="record.is_paid ? 'green' : 'red'"
+            class="font-bold px-4 py-1"
+          >
+            {{ record.is_paid ? 'PAID' : 'UNPAID' }}
           </Tag>
         </template>
 
@@ -283,10 +353,9 @@ onMounted(fetchRequests)
             v-if="record.result_file"
             type="primary"
             size="small"
-            
-            @click="downloadResultPDF(record.result_file, `jamb-admission-${record.registration_number || record.id}.pdf`)"
+            @click="downloadFile(record.result_file, `jamb-notification-${record.registration_number || record.id}`)"
           >
-            Download PDF
+            <DownloadOutlined /> Download
           </Button>
           <span v-else class="text-gray-400 text-sm">No file</span>
         </template>
@@ -298,23 +367,23 @@ onMounted(fetchRequests)
           </span>
         </template>
 
-        <!-- Actions - NOW WITH MODALS -->
+        <!-- Actions -->
         <template #actionsCell="{ record }">
           <div class="flex justify-center gap-2">
-            <template v-if="record.status === 'pending'">
-              <!-- APPROVE BUTTON -->
+            <template v-if="record.status === 'completed'">
               <Button
                 type="primary"
                 size="small"
+                :loading="approveLoading"
                 @click="openApproveModal(record.id)"
               >
                 <CheckOutlined /> Approve
               </Button>
 
-              <!-- REJECT BUTTON -->
               <Button
                 danger
                 size="small"
+                :loading="rejectLoading"
                 @click="openRejectModal(record.id)"
               >
                 <CloseOutlined /> Reject
@@ -336,14 +405,14 @@ onMounted(fetchRequests)
       </Table>
     </Card>
 
-    <!-- ✅ APPROVE CONFIRMATION MODAL -->
+    <!-- Approve Modal -->
     <Modal
       v-model:visible="approveModalVisible"
       title="Confirm Approval"
       ok-text="Approve Request"
       cancel-text="Cancel"
+      :ok-button-props="{ loading: approveLoading }"
       @ok="handleApprove"
-      ok-button-props="{ icon: 'check' }"
     >
       <p>Are you sure you want to approve this JAMB Admission Result Notification request?</p>
       <p class="text-sm text-gray-500 mt-2">
@@ -351,12 +420,13 @@ onMounted(fetchRequests)
       </p>
     </Modal>
 
-    <!-- ✅ REJECT MODAL WITH REASON -->
+    <!-- Reject Modal -->
     <Modal
       v-model:visible="rejectModalVisible"
       title="Reject Request"
       ok-text="Reject Request"
       cancel-text="Cancel"
+      :ok-button-props="{ loading: rejectLoading }"
       @ok="handleReject"
     >
       <div>
