@@ -1,6 +1,6 @@
-<!-- pages/reset-password.vue -->
+<!-- pages/password-reset/[token].vue -->
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePublicApi } from '~/composables/useApi'
 
@@ -11,9 +11,12 @@ definePageMeta({
 const route = useRoute()
 const api = usePublicApi()
 
+const token = route.params.token as string
+const emailFromQuery = (route.query.email as string) || ''
+
 const form = reactive({
-  email: route.query.email || '',
-  token: route.query.token || '',
+  email: emailFromQuery,
+  token: token,
   password: '',
   password_confirmation: '',
 })
@@ -21,6 +24,22 @@ const form = reactive({
 const loading = ref(false)
 const error = ref('')
 const success = ref('')
+
+// Optional: Fetch and pre-fill email if not provided in query (some backends validate token and return email)
+// Remove this block if your backend doesn't support token validation endpoint
+onMounted(async () => {
+  if (!emailFromQuery && token) {
+    try {
+      const res = await api('/auth/validate-reset-token', {
+        method: 'POST',
+        body: { token },
+      })
+      form.email = res.email || ''
+    } catch (err) {
+      error.value = 'Invalid or expired reset link'
+    }
+  }
+})
 
 async function resetPassword() {
   loading.value = true
@@ -33,15 +52,20 @@ async function resetPassword() {
     return
   }
 
+  if (!form.email) {
+    error.value = 'Email is required'
+    loading.value = false
+    return
+  }
+
   try {
     await api('/auth/reset-password', {
       method: 'POST',
       body: form,
     })
-
     success.value = 'Password reset successful. You can now login.'
   } catch (err: any) {
-    error.value = err?.data?.message || 'Reset failed'
+    error.value = err?.data?.message || 'Reset failed. The link may be invalid or expired.'
   } finally {
     loading.value = false
   }
@@ -64,7 +88,7 @@ async function resetPassword() {
     >
       <a-form layout="vertical" @finish="resetPassword">
         <a-form-item label="Email">
-          <a-input v-model:value="form.email" disabled />
+          <a-input v-model:value="form.email" :disabled="!!emailFromQuery" />
         </a-form-item>
 
         <a-form-item
@@ -80,9 +104,7 @@ async function resetPassword() {
           name="password_confirmation"
           :rules="[{ required: true, message: 'Confirm password' }]"
         >
-          <a-input-password
-            v-model:value="form.password_confirmation"
-          />
+          <a-input-password v-model:value="form.password_confirmation" />
         </a-form-item>
 
         <a-alert
@@ -107,6 +129,7 @@ async function resetPassword() {
             html-type="submit"
             block
             :loading="loading"
+            :disabled="!!success"
           >
             Reset Password
           </a-button>
