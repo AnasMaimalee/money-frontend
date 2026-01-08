@@ -144,7 +144,7 @@ onMounted(() => fetchUsers())
     <!-- Header - Store button LEFT, Refresh RIGHT -->
    <!-- ✅ BUTTONS AT THE END (RIGHT SIDE) -->
     <div class="flex justify-between items-center">
-    <Typography.Title level={2} class="!m-0">Users Management</Typography.Title>
+    <Typography.Title level={2} class="!m-0">Administrator Management</Typography.Title>
     <div class="flex items-center gap-4">
         <Button 
         type="primary" 
