@@ -138,10 +138,10 @@ onMounted(() => {
       <div class="flex items-center">
         <Button type="text" @click="router.back()" class="mr-4 p-0 h-auto flex items-center">
           <ArrowLeftOutlined class="text-xl" />
-          <span class="ml-1 font-medium">Back to Users</span>
+          <span class="ml-1 font-medium">Back to Administrator</span>
         </Button>
         <div>
-          <Typography.Title level={3} class="!m-0 mb-1">User Activity Dashboard</Typography.Title>
+          <Typography.Title level={3} class="!m-0 mb-1">Administrator Activity Dashboard</Typography.Title>
           <Typography.Text type="secondary">Wallet transactions & login history</Typography.Text>
         </div>
       </div>
@@ -325,5 +325,33 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.antdv-table-custom :deep(.ant-table-thead) th {
+  @apply bg-gradient-to-r from-gray-50 to-gray-100 font-semibold border-b-2 border-gray-200 backdrop-blur-sm;
+}
+.antdv-table-custom :deep(.ant-table-tbody) td {
+  @apply border-b border-gray-100 py-4;
+}
+.antdv-table-custom :deep(.ant-table-row:hover > td) {
+  @apply bg-blue-50/70 backdrop-blur-sm;
+}
+.antdv-table-custom :deep(.ant-card-body) {
+  @apply p-0;
+}
+.font-mono {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
 
+/* ✅ WALLET-STYLE ROW HIGHLIGHTING */
+:deep(.credit-row) {
+  @apply bg-green-50/90 border-l-4 border-green-400 shadow-sm;
+}
+:deep(.credit-row:hover) {
+  @apply bg-green-100/90 border-l-4 border-green-500 shadow-md;
+}
+:deep(.debit-row) {
+  @apply bg-red-50/90 border-l-4 border-red-400 shadow-sm;
+}
+:deep(.debit-row:hover) {
+  @apply bg-red-100/90 border-l-4 border-red-500 shadow-md;
+}
 </style>

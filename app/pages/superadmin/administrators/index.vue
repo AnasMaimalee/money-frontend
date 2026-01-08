@@ -74,7 +74,7 @@ const fetchUsers = async () => {
     pagination.value.total = res.data.total || 0
     pagination.value.pageSize = res.data.per_page || 10
   } catch (err) {
-    message.error('Failed to fetch users')
+    message.error('Failed to fetch administrtaors')
   } finally {
     loading.value = false
   }
@@ -108,13 +108,72 @@ const handleCreateUser = async () => {
   }
 }
 
+/* ================= ACTION FUNCTIONS ================= */
+const openFundModal = (user) => { 
+  selectedUser.value = user
+  amount.value = null
+  reason.value = ''
+  fundModalVisible.value = true 
+}
+
+const openDebitModal = (user) => { 
+  selectedUser.value = user
+  amount.value = null
+  reason.value = ''
+  debitModalVisible.value = true 
+}
 
 const confirmDeleteUser = (user) => {
   selectedUser.value = user
   deleteModalVisible.value = true
 }
 
+/* ================= FUND/DEBIT/DELETE HANDLERS ================= */
+const handleFundUser = async () => {
+  if (amount.value === null || amount.value <= 0) {
+    message.error('Amount is required and must be greater than 0')
+    return
+  }
+  modalLoading.value = true
+  try {
+    await $api(`/users/${selectedUser.value.id}/fund`, {
+      method: 'POST',
+      body: { amount: Number(amount.value), reason: reason.value || 'Admin fund' }
+    })
+    message.success(`✅ Funded ₦${Number(amount.value).toLocaleString()}`)
+    fundModalVisible.value = false
+    amount.value = null
+    reason.value = ''
+    fetchUsers()
+  } catch (err: any) {
+    message.error(err.data?.message || 'Failed to fund user')
+  } finally {
+    modalLoading.value = false
+  }
+}
 
+const handleDebitUser = async () => {
+  if (amount.value === null || amount.value <= 0) {
+    message.error('Amount is required and must be greater than 0')
+    return
+  }
+  modalLoading.value = true
+  try {
+    await $api(`/users/${selectedUser.value.id}/debit`, {
+      method: 'POST',
+      body: { amount: Number(amount.value), reason: reason.value || 'Admin debit' }
+    })
+    message.success(`✅ Debited ₦${Number(amount.value).toLocaleString()}`)
+    debitModalVisible.value = false
+    amount.value = null
+    reason.value = ''
+    fetchUsers()
+  } catch (err: any) {
+    message.error(err.data?.message || 'Failed to debit user')
+  } finally {
+    modalLoading.value = false
+  }
+}
 
 const deleteUser = async () => {
   modalLoading.value = true
@@ -152,7 +211,7 @@ onMounted(() => fetchUsers())
         @click="openCreateModal"
         icon="PlusOutlined"
         >
-        <UserAddOutlined /> Store User
+        <UserAddOutlined /> Store Administrator
         </Button>
         <Button @click="fetchUsers" icon="ReloadOutlined" size="large">
         Refresh
@@ -229,6 +288,8 @@ onMounted(() => fetchUsers())
             <template #overlay>
               <Space direction="vertical" style="width: 160px">
                 <Button block type="primary" size="small" @click="router.push(`/superadmin/administrators/${record.id}`)">👁️ View</Button>
+                <Button block type="success" size="small" @click="openFundModal(record)">💰 Fund</Button>
+                <Button block type="warning" size="small" @click="openDebitModal(record)">💳 Debit</Button>
                 <Button block danger size="small" @click="confirmDeleteUser(record)">🗑️ Delete</Button>
               </Space>
             </template>
@@ -268,6 +329,87 @@ onMounted(() => fetchUsers())
     </Modal>
 <!-- ADD THESE MISSING MODALS at the BOTTOM (before </template>) -->
 
+<!-- ✅ FUND MODAL -->
+<Modal v-model:visible="fundModalVisible" title="Fund Wallet" width="450" :footer="null" class="!max-w-[450px]">
+  <div class="space-y-3 p-4">
+    <div>
+      <div class="text-sm font-medium truncate">{{ selectedUser?.name }}</div>
+      <div class="text-xs text-gray-500 truncate">{{ selectedUser?.email }}</div>
+    </div>
+    <div class="text-right text-sm mb-3 p-2 bg-green-50 rounded-lg">
+      <span class="text-green-700 font-bold text-lg">₦{{ Number(selectedUser?.wallet?.balance || 0).toLocaleString() }}</span>
+      <div class="text-xs text-green-600">Current Balance</div>
+    </div>
+    <InputNumber 
+      v-model:value="amount" 
+      :min="1" 
+      :precision="0" 
+      size="middle" 
+      class="w-full" 
+      placeholder="Enter amount to fund"
+    />
+    <Input 
+      v-model:value="reason" 
+      size="middle" 
+      class="w-full" 
+      placeholder="Reason for funding (optional)"
+    />
+    <div class="flex gap-2 pt-2">
+      <Button size="middle" @click="fundModalVisible = false" class="flex-1">Cancel</Button>
+      <Button 
+        type="primary" 
+        size="middle" 
+        :loading="modalLoading" 
+        @click="handleFundUser" 
+        class="flex-1"
+      >
+        💰 Fund ₦{{ amount ? Number(amount).toLocaleString() : '0' }}
+      </Button>
+    </div>
+  </div>
+</Modal>
+
+<!-- ✅ DEBIT MODAL -->
+<Modal v-model:visible="debitModalVisible" title="Debit Wallet" width="450" :footer="null" class="!max-w-[450px]">
+  <div class="space-y-3 p-4">
+    <div>
+      <div class="text-sm font-medium truncate">{{ selectedUser?.name }}</div>
+      <div class="text-xs text-gray-500 truncate">{{ selectedUser?.email }}</div>
+    </div>
+    <div class="text-right text-sm mb-3 p-2 bg-green-50 rounded-lg">
+      <span class="text-green-700 font-bold text-lg">₦{{ Number(selectedUser?.wallet?.balance || 0).toLocaleString() }}</span>
+      <div class="text-xs text-green-600">Current Balance</div>
+    </div>
+    <InputNumber 
+      v-model:value="amount" 
+      :min="1" 
+      :precision="0" 
+      :max="selectedUser?.wallet?.balance" 
+      size="middle" 
+      class="w-full" 
+      placeholder="Enter amount to debit"
+    />
+    <Input 
+      v-model:value="reason" 
+      size="middle" 
+      class="w-full" 
+      placeholder="Reason for debit (optional)"
+    />
+    <div class="flex gap-2 pt-2">
+      <Button size="middle" @click="debitModalVisible = false" class="flex-1">Cancel</Button>
+      <Button 
+        type="primary" 
+        danger 
+        size="middle" 
+        :loading="modalLoading" 
+        @click="handleDebitUser" 
+        class="flex-1"
+      >
+        💳 Debit ₦{{ amount ? Number(amount).toLocaleString() : '0' }}
+      </Button>
+    </div>
+  </div>
+</Modal>
 
 <!-- ✅ DELETE MODAL -->
 <Modal v-model:visible="deleteModalVisible" title="Delete User?" width="450" :footer="null" class="!max-w-[450px]">
