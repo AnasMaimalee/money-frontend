@@ -10,20 +10,26 @@ export default defineNuxtConfig({
     'nuxt-icon',
   ],
 
+  nitro: {
+    host: '0.0.0.0',  // ✅ ALL interfaces
+    port: 3000
+  }, 
+
   pinia: {
     autoImports: ['defineStore', 'acceptHMRUpdate', 'storeToRefs'],
   },
 
-  imports: {
-    dirs: ['./stores'],
-  },
-
+  // ✅ SINGLE runtimeConfig BLOCK
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000/api',
       appName: 'JAMB Portal',
       appDescription: 'Print JAMB Original Results, Admission Letters & Check Status',
     },
+  },
+
+  imports: {
+    dirs: ['./stores'],
   },
 
   css: ['~/assets/css/main.css'],
@@ -34,8 +40,7 @@ export default defineNuxtConfig({
       meta: [
         {
           name: 'description',
-          content:
-            'Official platform to print JAMB original results, admission letters, check admission status.',
+          content: 'Official platform to print JAMB original results, admission letters, check admission status.',
         },
         { name: 'theme-color', content: '#1e3a8a' },
       ],
