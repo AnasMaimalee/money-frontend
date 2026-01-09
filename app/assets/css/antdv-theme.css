@@ -1,23 +1,139 @@
 /* ===============================
    CodeBridge Ant Design Theme
+   Dark Green → Light Green Perfect Match
    =============================== */
 
 :root {
-  /* Primary (Dark Green) */
-  --ant-primary-color: #1f3b4d;
-  --ant-primary-color-hover: #294b63;
-  --ant-primary-color-active: #162a36;
-  --ant-primary-color-outline: rgba(31, 59, 77, 0.2);
+  /* Primary Colors (Dark → Light Green) */
+  --ant-primary-color: #10b981;           /* Dark Green - Main Brand */
+  --ant-primary-color-hover: #059669;     /* Darker Green - Hover */
+  --ant-primary-color-active: #047857;    /* Deepest Green - Active */
+  --ant-primary-color-outline: rgba(16, 185, 129, 0.15); /* Subtle Green Outline */
 
-  /* Link color */
-  --ant-link-color: #1f3b4d;
-  --ant-link-hover-color: #294b63;
+  /* Light Green Accents */
+  --ant-primary-light-color: #34d399;     /* Light Green Accent */
+  --ant-primary-ghost-bg: rgba(16, 185, 129, 0.08); /* Ghost Button BG */
 
-  /* Border & focus */
-  --ant-border-color-base: #d9d9d9;
-  --ant-input-hover-border-color: #1f3b4d;
-  --ant-input-focus-border-color: #1f3b4d;
+  /* Link Colors (Green Theme) */
+  --ant-link-color: #10b981;
+  --ant-link-hover-color: #059669;
+  --ant-link-active-color: #047857;
 
-  /* Secondary (Light Gray) */
-  --ant-text-color-secondary: #8a8a8a;
+  /* Border & Focus (Green Theme) */
+  --ant-border-color-base: #e5e7eb;       /* Light Gray Border */
+  --ant-border-color-split: #f3f4f6;      /* Lighter Split */
+  --ant-input-hover-border-color: #10b981;
+  --ant-input-focus-border-color: #10b981;
+  --ant-input-active-border-color: #059669;
+
+  /* Text Colors */
+  --ant-text-color: #111827;              /* Dark Text */
+  --ant-text-color-secondary: #6b7280;    /* Secondary Text */
+  --ant-text-color-inverse: #ffffff;      /* White on Dark BG */
+
+  /* Backgrounds */
+  --ant-bg-color: #ffffff;                /* White Cards */
+  --ant-bg-color-secondary: #f9fafb;      /* Light Gray BG */
+  --ant-bg-color-hover: rgba(16, 185, 129, 0.04); /* Hover BG */
+  --ant-bg-color-active: rgba(16, 185, 129, 0.08); /* Active BG */
+
+  /* Success Colors (Enhanced Green) */
+  --ant-success-color: #10b981;
+  --ant-success-bg: rgba(16, 185, 129, 0.1);
+  --ant-success-border: rgba(16, 185, 129, 0.15);
+
+  /* Warning/Info Colors */
+  --ant-warning-color: #f59e0b;
+  --ant-error-color: #ef4444;
+  
+  /* Table Specific */
+  --ant-table-header-bg: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --ant-table-row-hover-bg: rgba(16, 185, 129, 0.05);
+
+  /* Card Shadows */
+  --ant-shadow-1: 0 1px 2px 0 rgba(16, 185, 129, 0.05);
+  --ant-shadow-2: 0 4px 12px 0 rgba(16, 185, 129, 0.1);
+  --ant-shadow-3: 0 10px 30px 0 rgba(16, 185, 129, 0.15);
+}
+
+/* Dark Mode Overrides */
+.dark {
+  /* Primary Colors (Same for consistency) */
+  --ant-primary-color: #34d399;           /* Light Green for Dark Mode */
+  --ant-primary-color-hover: #10b981;     /* Dark Green Hover */
+  --ant-primary-color-active: #059669;
+  
+  /* Backgrounds */
+  --ant-bg-color: #1e293b;                /* Dark Slate */
+  --ant-bg-color-secondary: #334155;      /* Darker Slate */
+  
+  /* Text */
+  --ant-text-color: #f8fafc;              /* Light Text */
+  --ant-text-color-secondary: #94a3b8;    /* Medium Gray */
+  
+  /* Borders */
+  --ant-border-color-base: #475569;
+  --ant-input-hover-border-color: #34d399;
+  --ant-input-focus-border-color: #34d399;
+}
+
+/* Custom Ant Design Overrides */
+:deep(.ant-btn-primary) {
+  background: linear-gradient(135deg, var(--ant-primary-color), #34d399) !important;
+  border-color: var(--ant-primary-color) !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4) !important;
+  text-shadow: none !important;
+}
+
+:deep(.ant-btn-primary:hover),
+:deep(.ant-btn-primary:focus) {
+  background: linear-gradient(135deg, var(--ant-primary-color-hover), var(--ant-primary-color)) !important;
+  border-color: var(--ant-primary-color-hover) !important;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5) !important;
+  transform: translateY(-1px);
+}
+
+:deep(.ant-table-thead > tr > th) {
+  background: var(--ant-table-header-bg) !important;
+  color: white !important;
+  font-weight: 700 !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2) !important;
+  border-radius: 12px 12px 0 0 !important;
+}
+
+:deep(.ant-table-tbody > tr:hover > td) {
+  background-color: var(--ant-table-row-hover-bg) !important;
+}
+
+:deep(.ant-card) {
+  border: 1px solid rgba(16, 185, 129, 0.1) !important;
+  border-radius: 20px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+:deep(.ant-card:hover) {
+  border-color: rgba(16, 185, 129, 0.2) !important;
+  box-shadow: var(--ant-shadow-3) !important;
+}
+
+:deep(.ant-input:focus),
+:deep(.ant-select-selector:focus),
+:deep(.ant-input:hover),
+:deep(.ant-select-selector:hover) {
+  border-color: var(--ant-primary-color) !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
+}
+
+:deep(.ant-tag-success) {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+  color: var(--ant-primary-color) !important;
+}
+
+/* Status Badge Overrides */
+:deep(.status-approved) {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #10b981 !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
 }

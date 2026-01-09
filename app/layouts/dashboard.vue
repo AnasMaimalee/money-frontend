@@ -42,11 +42,11 @@ const iconComponents: Record<string, any> = {
   'CheckCircleOutlined': CheckCircleOutlined,
   'BellOutlined': BellOutlined,
   'BoxPlotOutlined': BoxPlotOutlined,
-  'UserSwitchOutlined': TeamOutlined, // Fallback
-  'AppstoreAddOutlined': SettingIcon,  // Fallback
-  'DollarOutlined': WalletOutlined,    // Fallback
-  'NotificationOutlined': BellOutlined, // Fallback
-  'FileDoneOutlined': FileTextOutlined, // Fallback
+  'UserSwitchOutlined': TeamOutlined,
+  'AppstoreAddOutlined': SettingIcon,
+  'DollarOutlined': WalletOutlined,
+  'NotificationOutlined': BellOutlined,
+  'FileDoneOutlined': FileTextOutlined,
 }
 
 const firstName = computed(() => {
@@ -78,45 +78,50 @@ const logout = () => {
   auth.logout()
   router.push('/login')
 }
-
-// NO onMounted here anymore!
-// The global middleware handles authentication
 </script>
 
 <template>
-  <div class="min-h-screen flex bg-gray-50 dark:bg-gray-900">
+  <div class="min-h-screen flex bg-gradient-to-br from-emerald-50/50 to-teal-50/50 dark:from-gray-900 dark:to-gray-800">
     <!-- Sidebar -->
     <aside
       :class="[
-        'flex flex-col bg-white dark:bg-gray-800 shadow-xl transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-gray-700',
-        collapsed ? 'w-20' : 'w-72'
+        'flex flex-col shadow-2xl transition-all duration-500 ease-out border-r border-emerald-200/50 dark:border-emerald-900/50 backdrop-blur-xl',
+        collapsed ? 'w-24' : 'w-76'
       ]"
+      :style="{
+        background: 'rgba(255, 255, 255, 0.9)',
+        'border-right': '1px solid rgba(16, 185, 129, 0.2)'
+      }"
     >
       <!-- Logo & Collapse Toggle -->
-      <div class="h-16 flex items-center justify-between px-5 border-b border-gray-200 dark:border-gray-700">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-gradient-to-br from-indigo-600 to-primary rounded-lg flex items-center justify-center text-white font-bold text-xl">
-            E
+      <div class="h-20 flex items-center justify-between px-6 border-b border-emerald-100/50 bg-gradient-to-r from-emerald-500/5 to-teal-500/5">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-2xl shadow-lg">
+            EO
           </div>
-          <span v-if="!collapsed" class="font-bold text-xl text-gray-800 dark:text-white">Edu Oasis</span>
+          <span v-if="!collapsed" class="font-black text-2xl bg-gradient-to-r from-emerald-600 to-emerald-700 bg-clip-text text-transparent">
+            EduOasis
+          </span>
         </div>
-        <a-button @click="collapsed = !collapsed" type="text" class="text-primary hover:text-indigo-700">
-          <component :is="collapsed ? RightOutlined : LeftOutlined" class="w-5 h-5" />
-        </a-button>
+        <button @click="collapsed = !collapsed" class="p-2 rounded-xl hover:bg-emerald-100/50 dark:hover:bg-emerald-900/50 transition-all">
+          <component :is="collapsed ? RightOutlined : LeftOutlined" class="w-6 h-6 text-emerald-600" />
+        </button>
       </div>
 
-      <!-- User Info (hidden when collapsed) -->
-      <div v-if="!collapsed" class="px-5 py-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-indigo-50/50 to-primary/5 dark:from-gray-800 dark:to-gray-900">
+      <!-- User Info -->
+      <div v-if="!collapsed" class="px-6 py-8 border-b border-emerald-100/30 bg-gradient-to-b from-emerald-50/80 to-white/90 dark:from-emerald-900/30 dark:to-gray-800/90">
         <div class="flex items-center gap-4">
-          <a-avatar size="large" class="shadow-md" style="background-color:#1e3a8a">
+          <a-avatar size="large" :style="{ background: 'linear-gradient(135deg, #10b981, #34d399)' }">
             {{ firstName.charAt(0).toUpperCase() }}
           </a-avatar>
           <div class="flex-1 min-w-0">
-            <p class="font-semibold text-gray-800 dark:text-white truncate">{{ auth.user?.name || 'Loading...' }}</p>
-            <p class="text-xs text-gray-600 dark:text-gray-400 truncate">{{ auth.user?.email || '' }}</p>
+            <p class="font-bold text-xl text-gray-800 dark:text-white truncate bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text">
+              {{ auth.user?.name || 'Loading...' }}
+            </p>
+            <p class="text-sm text-emerald-700 dark:text-emerald-400 truncate">{{ auth.user?.email || '' }}</p>
             <a-tag
-              :color="auth.userRole === 'superadmin' ? 'purple' : auth.userRole === 'administrator' ? 'blue' : 'green'"
-              class="mt-2 text-xs"
+              :color="auth.userRole === 'superadmin' ? 'success' : auth.userRole === 'administrator' ? 'processing' : 'default'"
+              class="mt-3 font-semibold px-3 py-1 text-xs shadow-md"
             >
               {{ auth.userRole.charAt(0).toUpperCase() + auth.userRole.slice(1) }}
             </a-tag>
@@ -125,63 +130,88 @@ const logout = () => {
       </div>
 
       <!-- Menu Items -->
-      <div class="flex-1 overflow-y-auto py-4">
+      <div class="flex-1 overflow-y-auto py-6 px-2">
         <a-menu
           theme="light"
           mode="inline"
           :inline-collapsed="collapsed"
           :selected-keys="[currentRoute]"
-          class="border-r-0"
+          class="border-none bg-transparent"
+          :style="{ '--ant-primary-color': '#10b981' }"
         >
           <a-menu-item
             v-for="menu in menus"
             :key="menu.route"
             @click="navigate(menu.route)"
-            class="mx-3 rounded-lg mb-1 transition-all group"
-            :class="currentRoute === menu.route ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700'"
+            class="mx-3 mb-2 rounded-2xl px-4 py-3 transition-all duration-300 hover:shadow-lg group border border-emerald-100/50 hover:border-emerald-200/80"
+            :class="[
+              currentRoute === menu.route 
+                ? 'bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 text-emerald-700 shadow-emerald-200/50 border-emerald-300 font-semibold' 
+                : 'hover:bg-emerald-50/80 hover:text-emerald-700 hover:shadow-emerald-100/50'
+            ]"
           >
-            <a-tooltip :title="collapsed ? menu.title : ''" placement="right">
+            <a-tooltip :title="collapsed ? menu.title : ''" placement="right" :mouse-enter-delay="0.3">
               <div class="flex items-center gap-4">
                 <component
                   :is="iconComponents[menu.icon] || BoxPlotOutlined"
-                  class="w-6 h-6 flex-shrink-0 text-primary group-hover:text-indigo-700"
-                  :class="currentRoute === menu.route ? 'text-primary' : 'text-gray-600 dark:text-gray-400'"
+                  class="w-7 h-7 flex-shrink-0 transition-colors duration-300"
+                  :class="currentRoute === menu.route ? 'text-emerald-600 shadow-md' : 'text-emerald-500/70 group-hover:text-emerald-600'"
                 />
-                <span v-if="!collapsed" class="text-base truncate">{{ menu.title }}</span>
+                <span v-if="!collapsed" class="text-base font-medium truncate tracking-wide">
+                  {{ menu.title }}
+                </span>
               </div>
             </a-tooltip>
           </a-menu-item>
         </a-menu>
       </div>
+
+      <!-- Footer -->
+      <div class="p-6 border-t border-emerald-100/50 mt-auto">
+        <a-button 
+          block 
+          size="large" 
+          @click="logout"
+          class="rounded-xl h-14 font-semibold shadow-lg hover:shadow-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white border-none"
+        >
+          <LogoutOutlined class="mr-2" />
+          <span v-if="!collapsed">Sign Out</span>
+        </a-button>
+      </div>
     </aside>
 
-    <!-- Main Content Area -->
-    <div class="flex-1 flex flex-col">
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col overflow-hidden">
       <!-- Header -->
-      <header class="h-16 bg-white dark:bg-gray-800 shadow-sm flex items-center justify-between px-8 border-b border-gray-200 dark:border-gray-700">
-        <h1 class="text-2xl font-semibold text-gray-800 dark:text-white">{{ currentPageTitle }}</h1>
+      <header class="h-20 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-lg border-b border-emerald-100/50 flex items-center justify-between px-8">
+        <div class="flex items-center gap-6">
+          <h1 class="text-3xl font-black bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-700 bg-clip-text text-transparent drop-shadow-lg">
+            {{ currentPageTitle }}
+          </h1>
+        </div>
 
         <!-- User Dropdown -->
         <a-dropdown placement="bottomRight">
-          <div class="flex items-center gap-3 cursor-pointer px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-            <a-avatar size="default" style="background-color:#1e3a8a">
+          <div class="flex items-center gap-4 cursor-pointer px-6 py-3 rounded-2xl hover:bg-emerald-50/80 dark:hover:bg-emerald-900/50 transition-all duration-300 shadow-sm border border-emerald-200/50 hover:border-emerald-300/70">
+            <a-avatar size="large" :style="{ background: 'linear-gradient(135deg, #10b981, #34d399)' }">
               {{ firstName.charAt(0).toUpperCase() }}
             </a-avatar>
-            <div class="hidden md:block">
-              <p class="font-medium text-gray-800 dark:text-white">{{ firstName }}</p>
+            <div class="hidden lg:block min-w-0">
+              <p class="font-semibold text-gray-800 dark:text-white truncate">{{ firstName }}</p>
+              <p class="text-sm text-emerald-600 font-medium">{{ auth.userRole }}</p>
             </div>
           </div>
           <template #overlay>
-            <a-menu class="shadow-lg">
-              <a-menu-item @click="navigate('/profile')">
-                <UserOutlined class="mr-2" /> Profile
+            <a-menu class="min-w-[200px] shadow-2xl border border-emerald-100/50 rounded-2xl overflow-hidden">
+              <a-menu-item key="profile" class="px-6 py-4 hover:bg-emerald-50/50 border-b border-emerald-100/30">
+                <UserOutlined class="mr-3 text-emerald-600" /> Profile
               </a-menu-item>
-              <a-menu-item @click="navigate('/settings')">
-                <SettingOutlined class="mr-2" /> Settings
+              <a-menu-item key="settings" class="px-6 py-4 hover:bg-emerald-50/50">
+                <SettingOutlined class="mr-3 text-emerald-600" /> Settings
               </a-menu-item>
-              <a-menu-divider />
-              <a-menu-item danger @click="logout">
-                <LogoutOutlined class="mr-2" /> Logout
+              <a-menu-divider class="my-0 bg-emerald-100/50" />
+              <a-menu-item key="logout" danger class="px-6 py-4">
+                <LogoutOutlined class="mr-3" /> Logout
               </a-menu-item>
             </a-menu>
           </template>
@@ -189,47 +219,48 @@ const logout = () => {
       </header>
 
       <!-- Page Content -->
-      <main class="flex-1 p-8 bg-gray-50 dark:bg-gray-900 overflow-y-auto">
+      <main class="flex-1 overflow-y-auto p-10">
         <slot />
       </main>
-
-      <!-- Footer -->
-      <footer class="text-center text-sm text-gray-500 dark:text-gray-400 py-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        © {{ new Date().getFullYear() }} JAMB Fortal • All rights reserved
-      </footer>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* Selected menu item */
+/* Enhanced Menu Styling */
+:deep(.ant-menu-item) {
+  border-radius: 20px !important;
+  margin: 4px 8px !important;
+  border: 1px solid transparent !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+:deep(.ant-menu-item:hover) {
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  transform: translateX(4px) !important;
+}
+
 :deep(.ant-menu-item-selected) {
-  background-color: rgba(30, 58, 138, 0.1) !important;
-  color: #1e3a8a !important;
-  border-right: 4px solid #1e3a8a;
-  font-weight: 500;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(52, 211, 153, 0.2)) !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25) !important;
+  transform: translateX(2px) !important;
 }
 
-:deep(.ant-menu-item-selected .anticon) {
-  color: #1e3a8a !important;
+:deep(.ant-menu-item-selected::after) {
+  border-right-color: #10b981 !important;
 }
 
-/* Hover */
-:deep(.ant-menu-item:hover:not(.ant-menu-item-selected)) {
-  background-color: #f5f9ff !important;
-  color: #1e3a8a !important;
+:deep(.anticon) {
+  transition: all 0.3s ease !important;
 }
 
-:deep(.ant-menu-item:hover .anticon) {
-  color: #1e3a8a !important;
+/* Dark mode adjustments */
+.dark :deep(.ant-menu-item:hover) {
+  border-color: rgba(52, 211, 153, 0.4) !important;
 }
 
-/* Dark mode tweaks */
 .dark :deep(.ant-menu-item-selected) {
-  background-color: rgba(30, 58, 138, 0.2) !important;
-}
-
-.dark :deep(.ant-menu-item:hover:not(.ant-menu-item-selected)) {
-  background-color: #334155 !important;
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.3), rgba(16, 185, 129, 0.25)) !important;
 }
 </style>

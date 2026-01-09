@@ -4,79 +4,180 @@
 
 @layer base {
   :root {
-    --bg-primary: theme('colors.primary.900');
-    --text-primary: theme('colors.primary.900');
+    /* CodeBridge Green Brand Colors */
+    --brand-primary: #10b981;       /* Dark Green - Main Brand */
+    --brand-primary-hover: #059669;  /* Darker Green - Hover */
+    --brand-primary-light: #34d399;  /* Light Green - Accents */
+    --brand-primary-bg: #d1fae5;     /* Light Green BG */
+    --brand-primary-dark: #047857;   /* Deep Green */
+    
+    --text-primary: #065f46;         /* Dark Green Text */
+    --bg-primary: #f8fafc;           /* Light BG */
   }
 
   .dark {
-    --bg-primary: theme('colors.primary.800');
-    --text-primary: theme('colors.primary.300');
+    --brand-primary: #10b981;
+    --brand-primary-hover: #059669;
+    --brand-primary-light: #34d399;
+    --brand-primary-bg: #064e3b;
+    --brand-primary-dark: #047857;
+    --text-primary: #34d399;
+    --bg-primary: #0f172a;
   }
 }
 
 @layer components {
+  /* Primary Brand Button */
   .btn-primary {
-    @apply bg-primary text-white font-semibold py-3 px-6 rounded-lg hover:opacity-90 transition;
-  }
-
-  .card {
-    @apply bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8;
-  }
-}
-
-:root {
-  /* CodeBridge Brand Colors */
-  --brand-primary: #1f3b4d;   /* dark green */
-  --brand-primary-hover: #294b63;
-  --brand-secondary: #8a8a8a; /* light gray */
-}
-
-
-@layer components {
-  .bg-primary {
-    background-color: var(--brand-primary);
-  }
-
-  .text-primary {
-    color: var(--brand-primary);
-  }
-
-  .border-primary {
-    border-color: var(--brand-primary);
-  }
-
-  .bg-secondary {
-    background-color: var(--brand-secondary);
-  }
-
-  .text-secondary {
-    color: var(--brand-secondary);
-  }
-
-  .btn-primary {
-    background-color: var(--brand-primary);
-    color: #fff;
-    font-weight: 600;
-    border-radius: 12px;
-    transition: all 0.3s ease;
+    background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-light));
+    color: white;
+    font-weight: 700;
+    padding: 12px 24px;
+    border-radius: 16px;
+    border: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.4);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
   }
 
   .btn-primary:hover {
-    background-color: var(--brand-primary-hover);
+    background: linear-gradient(135deg, var(--brand-primary-hover), var(--brand-primary));
     transform: translateY(-2px);
+    box-shadow: 0 8px 25px 0 rgba(16, 185, 129, 0.5);
   }
 
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+
+  /* Secondary Button */
   .btn-secondary {
-    background-color: var(--brand-secondary);
-    color: #fff;
+    background: var(--brand-primary-bg);
+    color: var(--text-primary);
     font-weight: 600;
-    border-radius: 12px;
+    padding: 12px 24px;
+    border-radius: 16px;
+    border: 2px solid var(--brand-primary);
     transition: all 0.3s ease;
+    font-size: 1rem;
   }
 
+  .btn-secondary:hover {
+    background: var(--brand-primary);
+    color: white;
+    transform: translateY(-1px);
+  }
+
+  /* Cards */
   .card {
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(31, 59, 77, 0.15);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    border: 1px solid rgba(16, 185, 129, 0.1);
+    box-shadow: 
+      0 20px 40px rgba(16, 185, 129, 0.1),
+      0 1px 3px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--brand-primary), var(--brand-primary-light));
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 
+      0 30px 60px rgba(16, 185, 129, 0.2),
+      0 8px 25px rgba(16, 185, 129, 0.15);
+  }
+
+  /* Brand Headers */
+  .brand-hero {
+    background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-light));
+    color: white;
+    border-radius: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .brand-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(45deg, 
+      rgba(255,255,255,0.1) 0%, 
+      transparent 50%, 
+      rgba(255,255,255,0.05) 100%);
+    animation: shimmer 3s infinite;
+  }
+
+  /* Tables */
+  .table-header {
+    background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-light)) !important;
+    color: white !important;
+    font-weight: 700 !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+
+  .table-row-hover {
+    background: rgba(16, 185, 129, 0.05) !important;
+    transition: background 0.2s ease;
+  }
+
+  /* Status Badges */
+  .status-pending { 
+    @apply bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-xs font-semibold; 
+  }
+  .status-processing { 
+    @apply bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold; 
+  }
+  .status-approved { 
+    @apply bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-xs font-semibold; 
+  }
+  .status-completed { 
+    @apply bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold; 
+  }
+  .status-rejected { 
+    @apply bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-semibold; 
+  }
+
+  /* Animations */
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  /* Form Inputs */
+  .input-brand {
+    @apply w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent transition-all duration-300 bg-white/80 backdrop-blur-sm;
+  }
+
+  /* Notifications */
+  .notification-success {
+    @apply bg-emerald-50 border-emerald-200 text-emerald-800 border;
+  }
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+  .btn-primary {
+    padding: 10px 20px;
+    font-size: 0.95rem;
+  }
+  
+  .card {
+    padding: 1.5rem;
   }
 }

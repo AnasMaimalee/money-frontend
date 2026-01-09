@@ -9,9 +9,12 @@ import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
   Table, Card, Button, Input, Select, Modal, InputNumber, message, 
-  Tag, Space, Typography, Dropdown, Textarea, Form, Row, Col
+  Tag, Typography, Dropdown, Space
 } from 'ant-design-vue'
-import { SearchOutlined, ReloadOutlined, PlusOutlined, UserAddOutlined } from '@ant-design/icons-vue'
+import { 
+  EyeOutlined, WalletOutlined, CreditCardOutlined, DeleteOutlined,
+  ReloadOutlined, PlusOutlined, UserAddOutlined, SearchOutlined
+} from '@ant-design/icons-vue'
 
 const router = useRouter()
 const { $api } = useNuxtApp()
@@ -23,8 +26,9 @@ const searchText = ref('')
 const roleFilter = ref(null)
 const pagination = ref({
   current: 1,
-  pageSize: 10,
+  pageSize: 50,
   total: 0,
+  pageSizeOptions: ['10', '20', '50', '100'],
   showSizeChanger: true,
   showQuickJumper: true,
   showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} users`
@@ -40,7 +44,6 @@ const amount = ref(null)
 const reason = ref('')
 const modalLoading = ref(false)
 
-// NEW CREATE USER FORM
 const createForm = ref({
   name: '',
   email: '',
@@ -63,7 +66,7 @@ const fetchUsers = async () => {
   loading.value = true
   try {
     const params = {
-      search: searchText.value || undefined,
+      search: searchText.value?.trim() || undefined,
       role: roleFilter.value || undefined,
       page: pagination.value.current,
       per_page: pagination.value.pageSize
@@ -72,9 +75,10 @@ const fetchUsers = async () => {
     users.value = res.data.data || []
     pagination.value.current = res.data.current_page || 1
     pagination.value.total = res.data.total || 0
-    pagination.value.pageSize = res.data.per_page || 10
+    pagination.value.pageSize = res.data.per_page || 50
   } catch (err) {
-    message.error('Failed to fetch administrtaors')
+    message.error('Failed to fetch administrators')
+    users.value = []
   } finally {
     loading.value = false
   }
@@ -98,11 +102,11 @@ const handleCreateUser = async () => {
       method: 'POST',
       body: createForm.value
     })
-    message.success('✅ New user created successfully!')
+    message.success('✅ New administrator created successfully!')
     createModalVisible.value = false
     fetchUsers()
   } catch (err: any) {
-    message.error(err.data?.message || 'Failed to create user')
+    message.error(err.data?.message || 'Failed to create administrator')
   } finally {
     modalLoading.value = false
   }
@@ -123,7 +127,7 @@ const openDebitModal = (user) => {
   debitModalVisible.value = true 
 }
 
-const confirmDeleteUser = (user) => {
+const openDeleteModal = (user) => {
   selectedUser.value = user
   deleteModalVisible.value = true
 }
@@ -179,158 +183,173 @@ const deleteUser = async () => {
   modalLoading.value = true
   try {
     await $api(`/administrator/${selectedUser.value.id}`, { method: 'DELETE' })
-    message.success('✅ User deleted successfully')
+    message.success('✅ Administrator deleted successfully')
     deleteModalVisible.value = false
     selectedUser.value = null
     fetchUsers()
   } catch (err: any) {
-    message.error(err.response?.data?.message || 'Failed to delete user')
+    message.error(err.response?.data?.message || 'Failed to delete administrator')
   } finally {
     modalLoading.value = false
   }
 }
-
-watch([searchText, roleFilter], () => {
-  pagination.value.current = 1
-  fetchUsers()
-})
 
 onMounted(() => fetchUsers())
 </script>
 
 <template>
   <div class="p-6 space-y-6">
-    <!-- Header - Store button LEFT, Refresh RIGHT -->
-   <!-- ✅ BUTTONS AT THE END (RIGHT SIDE) -->
+    <!-- Header -->
     <div class="flex justify-between items-center">
-    <Typography.Title level={2} class="!m-0">Administrator Management</Typography.Title>
-    <div class="flex items-center gap-4">
-        <Button 
-        type="primary" 
-        size="large" 
-        @click="openCreateModal"
-        icon="PlusOutlined"
-        >
+      <Typography.Title level="3" class="!m-0">Administrator Management</Typography.Title>
+      <Button type="primary" size="middle" @click="openCreateModal">
         <UserAddOutlined /> Store Administrator
-        </Button>
-        <Button @click="fetchUsers" icon="ReloadOutlined" size="large">
-        Refresh
-        </Button>
-    </div>
+      </Button>
     </div>
 
-
-    <!-- Filters - NEXT TO Store button -->
+    <!-- ✅ TABLE WITH BUILT-IN SEARCH + REFRESH -->
     <Card>
-      <div class="flex gap-4 items-end">
-        <Input.Search
-          v-model:value="searchText"
-          placeholder="Search by name or email..."
-          size="large"
-          style="flex: 1"
-          @search="fetchUsers"
-        />
-        <Select
-          v-model:value="roleFilter"
-          placeholder="Filter by role"
-          allow-clear
-          style="width: 180px"
-          size="large"
-        >
-          <Select.Option value="user">User</Select.Option>
-          <Select.Option value="admin">Admin</Select.Option>
-          <Select.Option value="superadmin">Super Admin</Select.Option>
-        </Select>
-      </div>
-    </Card>
-
-    <!-- Table -->
-    <Card class="!shadow-lg">
       <Table
         :columns="[
-          { title: '#', key: 'index', width: 80, slots: { customRender: 'indexCell' } },
-          { title: 'Name', dataIndex: 'name', key: 'name', ellipsis: true },
-          { title: 'Email', dataIndex: 'email', key: 'email', ellipsis: true },
-          { title: 'Role', dataIndex: 'role', key: 'role', width: 120, slots: { customRender: 'roleCell' } },
-          { title: 'Wallet', key: 'balance', width: 140, align: 'right', slots: { customRender: 'balanceCell' } },
-          { title: 'Phone', dataIndex: 'phone', key: 'phone', width: 140 },
-          { title: 'State', dataIndex: 'state', key: 'state', width: 120 },
-          { title: 'Created', dataIndex: 'created_at', key: 'created_at', width: 140, slots: { customRender: 'createdCell' } },
-          { title: 'Actions', key: 'actions', width: 100, slots: { customRender: 'actionsCell' }, fixed: 'right' }
+          { title: '#', key: 'index', width: 60, slots: { customRender: 'indexCell' } },
+          { title: 'Name', dataIndex: 'name', key: 'name', width: 140, ellipsis: true },
+          { title: 'Email', dataIndex: 'email', key: 'email', width: 180, ellipsis: true },
+          { title: 'Role', dataIndex: 'role', key: 'role', width: 100, slots: { customRender: 'roleCell' } },
+          { title: 'Balance', key: 'balance', width: 110, align: 'right', slots: { customRender: 'balanceCell' } },
+          { title: 'Phone', dataIndex: 'phone', key: 'phone', width: 120 },
+          { title: 'State', dataIndex: 'state', key: 'state', width: 100 },
+          { title: 'Created', dataIndex: 'created_at', key: 'created_at', width: 120, slots: { customRender: 'createdCell' } },
+          { title: 'Action', key: 'actions', width: 80, slots: { customRender: 'actionsCell' }, fixed: 'right' }
         ]"
         :data-source="users"
         :loading="loading"
         :pagination="pagination"
         @change="handleTableChange"
         row-key="id"
-        :scroll="{ x: 1400 }"
+        :scroll="{ x: 1200 }"
+        size="middle"
+        class="admin-table"
       >
-        <!-- Table slots unchanged -->
+        <!-- ✅ TABLE TITLE WITH SEARCH + FILTER + REFRESH -->
+        <template #title>
+          <div class="flex flex-wrap items-center gap-3 p-4 pb-2">
+            <!-- ✅ SEARCH - FIXED -->
+            <Input 
+              v-model:value="searchText"
+              size="small"
+              placeholder="Search name/email..."
+              
+              class="flex-1 min-w-[200px] max-w-[300px]"
+              @pressEnter="fetchUsers"
+              @blur="fetchUsers"
+            />
+            
+            <!-- ✅ ROLE FILTER -->
+            <Select
+              v-model:value="roleFilter"
+              size="small"
+              placeholder="All Roles"
+              allow-clear
+              class="w-[140px]"
+              @change="fetchUsers"
+            >
+              <Select.Option value="user">User</Select.Option>
+              <Select.Option value="admin">Admin</Select.Option>
+              <Select.Option value="superadmin">Super Admin</Select.Option>
+            </Select>
+            
+            <!-- ✅ REFRESH BUTTON INSIDE TABLE -->
+            <Button size="small" @click="fetchUsers" :loading="loading">
+              <ReloadOutlined /> Refresh
+            </Button>
+          </div>
+        </template>
+
+        <template #emptyText>
+          <div class="text-center py-8">
+            <div class="text-lg font-semibold text-gray-600 mb-1">No administrators found</div>
+            <div class="text-sm text-gray-500 mb-4">Click "Store Administrator" to create your first admin</div>
+            <Button type="primary" @click="openCreateModal">
+              <UserAddOutlined /> Create First Admin
+            </Button>
+          </div>
+        </template>
+
         <template #indexCell="{ index }">
           {{ (pagination.current - 1) * pagination.pageSize + index + 1 }}
         </template>
+        
         <template #roleCell="{ record }">
-          <Tag :color="record.role === 'superadmin' ? 'volcano' : record.role === 'admin' ? 'blue' : 'green'">
-            {{ record.role.toUpperCase() }}
+          <Tag :color="record.role === 'superadmin' ? 'orange' : record.role === 'admin' ? 'blue' : 'green'"
+               class="text-xs px-2 py-1">
+            {{ record.role }}
           </Tag>
         </template>
+        
         <template #balanceCell="{ record }">
-          <div class="font-mono text-right">
-            <span class="text-green-600 font-bold">₦{{ Number(record.wallet?.balance || 0).toLocaleString() }}</span>
+          <div class="text-right text-sm font-medium text-emerald-600">
+            ₦{{ Number(record.wallet?.balance || 0).toLocaleString() }}
           </div>
         </template>
+        
         <template #createdCell="{ record }">
-          {{ new Date(record.created_at).toLocaleDateString() }}
+          <div class="text-sm">{{ new Date(record.created_at).toLocaleDateString() }}</div>
         </template>
+        
         <template #actionsCell="{ record }">
           <Dropdown trigger="click" placement="bottomRight">
-            <Button type="link" size="small" class="p-0 w-8 h-8 flex items-center justify-center">...</Button>
+            <Button type="text" size="small" shape="circle" class="!w-8 !h-8 !p-0 action-dots">⋯</Button>
             <template #overlay>
-              <Space direction="vertical" style="width: 160px">
-                <Button block type="primary" size="small" @click="router.push(`/superadmin/administrators/${record.id}`)">👁️ View</Button>
-                <Button block type="success" size="small" @click="openFundModal(record)">💰 Fund</Button>
-                <Button block type="warning" size="small" @click="openDebitModal(record)">💳 Debit</Button>
-                <Button block danger size="small" @click="confirmDeleteUser(record)">🗑️ Delete</Button>
-              </Space>
+              <div class="action-menu p-2 min-w-[160px]">
+                <Button block type="link" size="small" class="text-left py-1" 
+                        @click="router.push(`/superadmin/administrators/${record.id}`)">
+                  <EyeOutlined class="mr-2" />View
+                </Button>
+                <Button block type="link" size="small" class="text-left py-1" 
+                        @click="openFundModal(record)">
+                  <WalletOutlined class="mr-2" />Fund
+                </Button>
+                <Button block type="link" size="small" class="text-left py-1" 
+                        @click="openDebitModal(record)">
+                  <CreditCardOutlined class="mr-2" />Debit
+                </Button>
+                <Button block type="link" danger size="small" class="text-left py-1" 
+                        @click="openDeleteModal(record)">
+                  <DeleteOutlined class="mr-2" />Delete
+                </Button>
+              </div>
             </template>
           </Dropdown>
         </template>
       </Table>
     </Card>
 
-    <!-- ✅ NEW CREATE USER MODAL (500px) -->
-    <Modal v-model:visible="createModalVisible" title="Create New User" width="500" :footer="null" class="!max-w-[500px]">
-      <div class="space-y-4 p-4">
-        <div class="grid grid-cols-1 gap-3">
-          <Input v-model:value="createForm.name" size="large" placeholder="Full Name" />
-          <Input v-model:value="createForm.email" size="large" placeholder="Email Address" />
-          <Input v-model:value="createForm.phone" size="large" placeholder="Phone Number" />
-          <Select v-model:value="createForm.state" size="large" placeholder="Select State" class="w-full">
-            <Select.Option v-for="state in nigerianStates" :key="state" :value="state">{{ state }}</Select.Option>
-          </Select>
-          <Select v-model:value="createForm.role" size="large" placeholder="User Role" class="w-full">
-            <Select.Option value="user">User</Select.Option>
-            <Select.Option value="admin">Admin</Select.Option>
-          </Select>
-        </div>
-        <div class="flex gap-3 pt-2">
-          <Button size="large" @click="createModalVisible = false" class="flex-1">Cancel</Button>
-          <Button 
-            type="primary" 
-            size="large" 
-            :loading="modalLoading" 
-            @click="handleCreateUser" 
-            class="flex-1"
-          >
-            <UserAddOutlined /> Create User
-          </Button>
-        </div>
-      </div>
-    </Modal>
-<!-- ADD THESE MISSING MODALS at the BOTTOM (before </template>) -->
+   <!-- ADD THESE COMPLETE MODALS at the bottom (before </div>) -->
+
+<!-- ✅ CREATE MODAL -->
+<Modal v-model:visible="createModalVisible" title="Create New Administrator" :width="500" :footer="null">
+  <div class="space-y-4 p-4">
+    <Input v-model:value="createForm.name" size="large" placeholder="Full Name" />
+    <Input v-model:value="createForm.email" size="large" placeholder="Email Address" />
+    <Input v-model:value="createForm.phone" size="large" placeholder="Phone Number" />
+    <Select v-model:value="createForm.state" size="large" placeholder="Select State" class="w-full">
+      <Select.Option v-for="state in nigerianStates" :key="state" :value="state">{{ state }}</Select.Option>
+    </Select>
+    <Select v-model:value="createForm.role" size="large" placeholder="User Role" class="w-full">
+      <Select.Option value="user">User</Select.Option>
+      <Select.Option value="admin">Admin</Select.Option>
+    </Select>
+    <div class="flex gap-3 pt-2">
+      <Button size="large" @click="createModalVisible = false" class="flex-1">Cancel</Button>
+      <Button type="primary" size="large" :loading="modalLoading" @click="handleCreateUser" class="flex-1">
+        <UserAddOutlined /> Create Administrator
+      </Button>
+    </div>
+  </div>
+</Modal>
 
 <!-- ✅ FUND MODAL -->
-<Modal v-model:visible="fundModalVisible" title="Fund Wallet" width="450" :footer="null" class="!max-w-[450px]">
+<Modal v-model:visible="fundModalVisible" title="Fund Wallet" :width="450" :footer="null">
   <div class="space-y-3 p-4">
     <div>
       <div class="text-sm font-medium truncate">{{ selectedUser?.name }}</div>
@@ -340,29 +359,11 @@ onMounted(() => fetchUsers())
       <span class="text-green-700 font-bold text-lg">₦{{ Number(selectedUser?.wallet?.balance || 0).toLocaleString() }}</span>
       <div class="text-xs text-green-600">Current Balance</div>
     </div>
-    <InputNumber 
-      v-model:value="amount" 
-      :min="1" 
-      :precision="0" 
-      size="middle" 
-      class="w-full" 
-      placeholder="Enter amount to fund"
-    />
-    <Input 
-      v-model:value="reason" 
-      size="middle" 
-      class="w-full" 
-      placeholder="Reason for funding (optional)"
-    />
+    <InputNumber v-model:value="amount" :min="1" :precision="0" size="middle" class="w-full" placeholder="Enter amount to fund" />
+    <Input v-model:value="reason" size="middle" class="w-full" placeholder="Reason for funding (optional)" />
     <div class="flex gap-2 pt-2">
       <Button size="middle" @click="fundModalVisible = false" class="flex-1">Cancel</Button>
-      <Button 
-        type="primary" 
-        size="middle" 
-        :loading="modalLoading" 
-        @click="handleFundUser" 
-        class="flex-1"
-      >
+      <Button type="primary" size="middle" :loading="modalLoading" @click="handleFundUser" class="flex-1">
         💰 Fund ₦{{ amount ? Number(amount).toLocaleString() : '0' }}
       </Button>
     </div>
@@ -370,7 +371,7 @@ onMounted(() => fetchUsers())
 </Modal>
 
 <!-- ✅ DEBIT MODAL -->
-<Modal v-model:visible="debitModalVisible" title="Debit Wallet" width="450" :footer="null" class="!max-w-[450px]">
+<Modal v-model:visible="debitModalVisible" title="Debit Wallet" :width="450" :footer="null">
   <div class="space-y-3 p-4">
     <div>
       <div class="text-sm font-medium truncate">{{ selectedUser?.name }}</div>
@@ -380,31 +381,11 @@ onMounted(() => fetchUsers())
       <span class="text-green-700 font-bold text-lg">₦{{ Number(selectedUser?.wallet?.balance || 0).toLocaleString() }}</span>
       <div class="text-xs text-green-600">Current Balance</div>
     </div>
-    <InputNumber 
-      v-model:value="amount" 
-      :min="1" 
-      :precision="0" 
-      :max="selectedUser?.wallet?.balance" 
-      size="middle" 
-      class="w-full" 
-      placeholder="Enter amount to debit"
-    />
-    <Input 
-      v-model:value="reason" 
-      size="middle" 
-      class="w-full" 
-      placeholder="Reason for debit (optional)"
-    />
+    <InputNumber v-model:value="amount" :min="1" :precision="0" :max="selectedUser?.wallet?.balance" size="middle" class="w-full" placeholder="Enter amount to debit" />
+    <Input v-model:value="reason" size="middle" class="w-full" placeholder="Reason for debit (optional)" />
     <div class="flex gap-2 pt-2">
       <Button size="middle" @click="debitModalVisible = false" class="flex-1">Cancel</Button>
-      <Button 
-        type="primary" 
-        danger 
-        size="middle" 
-        :loading="modalLoading" 
-        @click="handleDebitUser" 
-        class="flex-1"
-      >
+      <Button type="primary" danger size="middle" :loading="modalLoading" @click="handleDebitUser" class="flex-1">
         💳 Debit ₦{{ amount ? Number(amount).toLocaleString() : '0' }}
       </Button>
     </div>
@@ -412,7 +393,7 @@ onMounted(() => fetchUsers())
 </Modal>
 
 <!-- ✅ DELETE MODAL -->
-<Modal v-model:visible="deleteModalVisible" title="Delete User?" width="450" :footer="null" class="!max-w-[450px]">
+<Modal v-model:visible="deleteModalVisible" title="Delete Administrator?" :width="450" :footer="null">
   <div class="space-y-4 p-4">
     <p class="text-sm leading-relaxed">
       Are you sure you want to delete <strong class="text-red-600">{{ selectedUser?.name }}</strong>?
@@ -428,18 +409,40 @@ onMounted(() => fetchUsers())
     <div class="flex gap-2 pt-2">
       <Button size="middle" @click="deleteModalVisible = false" class="flex-1">Cancel</Button>
       <Button danger size="middle" :loading="modalLoading" @click="deleteUser" class="flex-1">
-        🗑️ Delete User
+        🗑️ Delete Administrator
       </Button>
     </div>
   </div>
 </Modal>
 
-    <!-- PERFECT-SIZED FUND/DEBIT/DELETE MODALS (keep your existing ones) -->
-    <!-- ... your existing modals exactly as provided ... -->
   </div>
 </template>
 
 <style scoped>
+.admin-table :deep(.ant-table-thead th) {
+  @apply !bg-emerald-500 !text-white !font-semibold !py-3 !px-4 text-sm;
+}
+
+.admin-table :deep(.ant-table-tbody td) {
+  @apply !py-3 !px-4;
+}
+
+.admin-table :deep(.ant-table-row:hover > td) {
+  @apply bg-emerald-50;
+}
+
+.action-dots:hover {
+  @apply bg-gray-100 rounded-full;
+}
+
+.action-menu {
+  @apply bg-white border border-gray-200 rounded-lg shadow-lg;
+}
+
+.action-menu :deep(.ant-btn:hover) {
+  @apply bg-gray-50 rounded;
+}
+
 .font-mono {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
 }

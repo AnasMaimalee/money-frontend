@@ -279,15 +279,15 @@ onMounted(() => {
         />
       </div>
       <Table
-        :columns="auditColumns"
-        :data-source="filteredAudits"
-        :loading="auditsLoading"
-        :pagination="paginationAudits"
-        @change="handleAuditChange"
-        row-key="id"
-        class="antdv-table-custom"
-        :scroll="{ x: 1400 }"
-      >
+  :columns="auditColumns"
+  :data-source="filteredAudits"
+  :loading="auditsLoading"
+  :pagination="paginationAudits"
+  @change="handleAuditChange"
+  row-key="id"
+  class="antdv-table-custom login-audits-table" 
+  :scroll="{ x: 1400 }"
+>
         <template #auditIndexCell="{ index }">
           <div class="font-semibold text-gray-800">
             {{ (paginationAudits.current - 1) * paginationAudits.pageSize + index + 1 }}
@@ -354,4 +354,24 @@ onMounted(() => {
 :deep(.debit-row:hover) {
   @apply bg-red-100/90 border-l-4 border-red-500 shadow-md;
 }
+/* YOUR EXISTING STYLES - KEEP ALL */
+.antdv-table-custom :deep(.ant-table-thead) th {
+  @apply bg-gradient-to-r from-gray-50 to-gray-100 font-semibold border-b-2 border-gray-200 backdrop-blur-sm;
+}
+
+/* ✅ NEW: GREEN HEADERS FOR TRANSACTIONS TABLE */
+.antdv-table-custom :deep(.ant-table-thead th) {
+  @apply !bg-emerald-500 !text-white !font-semibold !py-3 !px-4 text-sm;
+}
+
+/* ✅ NEW: GREEN HEADERS FOR AUDITS TABLE */
+.login-audits-table :deep(.ant-table-thead th) {
+  @apply !bg-emerald-500 !text-white !font-semibold !py-3 !px-4 text-sm;
+}
+
+.antdv-table-custom :deep(.ant-table-tbody) td {
+  @apply border-b border-gray-100 py-4;
+}
+/* ... keep all your other existing styles exactly the same ... */
+
 </style>

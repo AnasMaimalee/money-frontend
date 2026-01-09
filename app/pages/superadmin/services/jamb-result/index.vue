@@ -5,7 +5,7 @@ definePageMeta({
   roles: ['superadmin'],
 })
 
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import {
   Table,
   Button,
@@ -20,6 +20,7 @@ import {
   CheckOutlined,
   CloseOutlined,
   ReloadOutlined,
+  SearchOutlined,
   DownloadOutlined,
 } from '@ant-design/icons-vue'
 
@@ -29,17 +30,18 @@ const config = useRuntimeConfig()
 /* ================= STATE ================= */
 const requests = ref<any[]>([])
 const loading = ref(false)
+const searchText = ref('')  // ✅ COMPACT SEARCH
 
 /* Approve modal */
 const approveModalVisible = ref(false)
 const currentApproveId = ref<string | null>(null)
-const approveLoading = ref(false) // ✅ APPROVE LOADER
+const approveLoading = ref(false)
 
 /* Reject modal */
 const rejectModalVisible = ref(false)
 const currentRejectId = ref<string | null>(null)
 const rejectReason = ref('')
-const rejectLoading = ref(false) // ✅ REJECT LOADER
+const rejectLoading = ref(false)
 
 /* Pagination */
 const pagination = ref({
@@ -52,13 +54,27 @@ const pagination = ref({
     `${range[0]}-${range[1]} of ${total} requests`,
 })
 
+/* ================= CLIENT-SIDE FILTERED DATA ✅ */
+const filteredRequests = computed(() => {
+  if (!searchText.value.trim()) return requests.value
+  
+  const query = searchText.value.toLowerCase()
+  return requests.value.filter(request => 
+    request.user?.name?.toLowerCase().includes(query) ||
+    request.email?.toLowerCase().includes(query) ||
+    request.service?.name?.toLowerCase().includes(query) ||
+    request.registration_number?.toLowerCase().includes(query) ||
+    request.status?.toLowerCase().includes(query)
+  )
+})
+
 /* ================= API ================= */
 const fetchRequests = async () => {
   loading.value = true
   try {
     const res = await $api('/services/jamb-result/all')
     requests.value = Array.isArray(res) ? res : res.data || []
-    pagination.value.total = requests.value.length
+    pagination.value.total = filteredRequests.value.length
   } catch (err) {
     message.error('Failed to load requests')
   } finally {
@@ -75,7 +91,7 @@ const openApproveModal = (id: string) => {
 const handleApprove = async () => {
   if (!currentApproveId.value) return
 
-  approveLoading.value = true // ✅ SHOW LOADER
+  approveLoading.value = true
 
   try {
     await $api(`/services/jamb-result/${currentApproveId.value}/approve`, { 
@@ -88,7 +104,7 @@ const handleApprove = async () => {
   } catch (err: any) {
     message.error(err.data?.message || 'Approval failed')
   } finally {
-    approveLoading.value = false // ✅ HIDE LOADER
+    approveLoading.value = false
   }
 }
 
@@ -105,7 +121,7 @@ const handleReject = async () => {
     return
   }
 
-  rejectLoading.value = true // ✅ SHOW LOADER
+  rejectLoading.value = true
 
   try {
     await $api(`/services/jamb-result/${currentRejectId.value}/reject`, {
@@ -120,90 +136,62 @@ const handleReject = async () => {
   } catch (err: any) {
     message.error(err.data?.message || 'Rejection failed')
   } finally {
-    rejectLoading.value = false // ✅ HIDE LOADER
+    rejectLoading.value = false
   }
 }
 
-/* ✅ UNIVERSAL FILE DOWNLOAD (PDF + IMAGES) */
-const downloadFile = async (filePath: string, filename = 'jamb-result') => {
+const downloadFile = async (filePath: string, filename = 'document') => {
   if (!filePath) {
     message.warning('No result file available')
     return
   }
 
   try {
-    const token = useCookie('auth_token')?.value || 
-                  localStorage.getItem('auth_token') ||
-                  sessionStorage.getItem('auth_token')
-
-    const url = `${config.public.apiBase}/storage/${filePath}`
-    
-    const response = await fetch(url, {
+    // ✅ USE $api - Laravel API Route
+    const response = await $api(`/download-storage/${filePath}`, {
       method: 'GET',
-      headers: {
-        'Authorization': token ? `Bearer ${token}` : '',
-      },
+      responseType: 'blob', // ✅ IMPORTANT for files
     })
 
-    if (!response.ok) {
-      throw new Error(`Server error: ${response.status} ${response.statusText}`)
-    }
-
-    const contentType = response.headers.get('content-type') || ''
-    const contentLength = response.headers.get('content-length')
+    const contentType = response.headers?.['content-type'] || ''
+    const blob = new Blob([response], { type: contentType })
     
-    if (contentLength && parseInt(contentLength) < 1000) {
-      throw new Error('File appears to be empty or corrupted')
-    }
-
-    const blob = await response.blob()
-    
-    // ✅ DYNAMIC FILENAME & EXTENSION
-    let downloadFilename = filename
-    if (contentType.includes('pdf')) {
-      downloadFilename = `${filename}.pdf`
-    } else if (contentType.includes('image/')) {
-      const imageExt = contentType.split('/')[1] || 'png'
-      downloadFilename = `${filename}.${imageExt}`
+    // ✅ SMART FILENAME
+    let downloadFilename = `${filename}-${Date.now()}`
+    if (contentType.includes('pdf')) downloadFilename += '.pdf'
+    else if (contentType.includes('image/')) {
+      const ext = contentType.split('/')[1]?.split('+')[0] || 'png'
+      downloadFilename += `.${ext}`
     } else {
-      const pathParts = filePath.split('.')
-      if (pathParts.length > 1) {
-        downloadFilename = `${filename}.${pathParts[pathParts.length - 1]}`
-      } else {
-        downloadFilename = `${filename}.file`
-      }
+      const ext = filePath.split('.').pop()
+      downloadFilename += `.${ext || 'file'}`
     }
 
-    // ✅ VALIDATE FILE TYPE
-    const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp']
-    if (!validTypes.some(type => contentType.includes(type.split('/')[1]))) {
-      throw new Error(`Unsupported file type: ${contentType}`)
-    }
-
-    const downloadUrl = window.URL.createObjectURL(blob)
+    // ✅ DOWNLOAD
+    const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
-    link.href = downloadUrl
+    link.href = url
     link.download = downloadFilename
     document.body.appendChild(link)
     link.click()
-    
     document.body.removeChild(link)
-    window.URL.revokeObjectURL(downloadUrl)
-    message.success(`${downloadFilename} downloaded successfully`)
+    window.URL.revokeObjectURL(url)
+    
+    message.success(`✅ ${downloadFilename} downloaded!`)
+    
   } catch (error: any) {
-    console.error('Download error:', error)
-    message.error(`Download failed: ${error.message}`)
+    console.error('❌ Download error:', error)
+    message.error(`❌ Download failed: ${error.message || 'Unknown error'}`)
   }
 }
 
-/* ================= TABLE ================= */
 const columns = [
   { title: '#', key: 'index', width: 60, slots: { customRender: 'indexCell' } },
   { title: 'Customer', key: 'user', width: 260, slots: { customRender: 'userCell' } },
   { title: 'Service', key: 'service', width: 280, slots: { customRender: 'serviceCell' } },
   { title: 'Pricing', key: 'pricing', width: 200, align: 'right', slots: { customRender: 'pricingCell' } },
   { title: 'Status', dataIndex: 'status', width: 120, slots: { customRender: 'statusCell' } },
-  { title: 'Is Paid?', dataIndex: 'is_paid', width: 100, slots: { customRender: 'isPaidCell' } }, // ✅ NEW
+  { title: 'Is Paid?', dataIndex: 'is_paid', width: 100, slots: { customRender: 'isPaidCell' } },
   { title: 'Taken By', key: 'taken', width: 180, slots: { customRender: 'takenCell' } },
   { title: 'Result File', key: 'file', width: 150, slots: { customRender: 'fileCell' } },
   { title: 'Date', dataIndex: 'created_at', width: 170, slots: { customRender: 'dateCell' } },
@@ -222,33 +210,46 @@ onMounted(fetchRequests)
           JAMB Result Requests
         </Typography.Title>
         <Typography.Text type="secondary">
-          {{ pagination.total }} total requests
+          {{ filteredRequests.length }} total requests
         </Typography.Text>
       </div>
-      <Button
-        type="primary"
-        :loading="loading"
-        @click="fetchRequests"
-      >
-        <ReloadOutlined /> Refresh
-      </Button>
     </div>
 
-    <!-- Table -->
+    <!-- Table with Compact Search + Refresh -->
     <Card>
+      <div class="flex justify-between items-center mb-4 p-4 pt-0">
+        <!-- ✅ COMPACT SEARCH + REFRESH -->
+        <div class="flex items-center gap-2">
+          <Input
+            v-model:value="searchText"
+            placeholder="Search requests..."
+            size="middle"
+            class="!w-64"
+          />
+          <Button
+            type="primary"
+            :loading="loading"
+            @click="fetchRequests"
+          >
+            <ReloadOutlined /> Refresh
+          </Button>
+        </div>
+      </div>
+
       <Table
         :columns="columns"
-        :data-source="requests"
+        :data-source="filteredRequests"
         :loading="loading"
         :pagination="pagination"
         row-key="id"
         :scroll="{ x: 1600 }"
+        class="result-table"
       >
-        <!-- Index -->
+        <!-- ✅ GREEN NUMBERING -->
         <template #indexCell="{ index }">
-          <strong class="text-blue-600">
+          <div class="font-semibold text-emerald-600">
             {{ (pagination.current - 1) * pagination.pageSize + index + 1 }}
-          </strong>
+          </div>
         </template>
 
         <!-- User -->
@@ -298,7 +299,7 @@ onMounted(fetchRequests)
           </Tag>
         </template>
 
-        <!-- ✅ IS PAID COLUMN -->
+        <!-- Is Paid -->
         <template #isPaidCell="{ record }">
           <Tag
             :color="record.is_paid ? 'green' : 'red'"
@@ -317,7 +318,7 @@ onMounted(fetchRequests)
           <span v-else class="text-gray-400 text-sm">—</span>
         </template>
 
-        <!-- ✅ FILE DOWNLOAD (PDF + Images) -->
+        <!-- File Download -->
         <template #fileCell="{ record }">
           <Button
             v-if="record.result_file"
@@ -341,7 +342,6 @@ onMounted(fetchRequests)
         <template #actionsCell="{ record }">
           <div class="flex justify-center gap-2">
             <template v-if="record.status === 'completed'">
-              <!-- ✅ APPROVE WITH LOADER -->
               <Button
                 type="primary"
                 size="small"
@@ -351,7 +351,6 @@ onMounted(fetchRequests)
                 <CheckOutlined /> Approve
               </Button>
 
-              <!-- ✅ REJECT WITH LOADER -->
               <Button
                 danger
                 size="small"
@@ -377,7 +376,7 @@ onMounted(fetchRequests)
       </Table>
     </Card>
 
-    <!-- ✅ APPROVE MODAL WITH LOADER -->
+    <!-- Approve Modal -->
     <Modal
       v-model:visible="approveModalVisible"
       title="Confirm Approval"
@@ -392,7 +391,7 @@ onMounted(fetchRequests)
       </p>
     </Modal>
 
-    <!-- ✅ REJECT MODAL WITH LOADER -->
+    <!-- Reject Modal -->
     <Modal
       v-model:visible="rejectModalVisible"
       title="Reject Request"
@@ -413,3 +412,22 @@ onMounted(fetchRequests)
     </Modal>
   </div>
 </template>
+
+<style scoped>
+/* ✅ GREEN EMERALD HEADER */
+.result-table :deep(.ant-table-thead th) {
+  @apply !bg-emerald-500 !text-white !font-semibold !py-3 !px-4 text-sm;
+}
+
+.result-table :deep(.ant-table-tbody td) {
+  @apply !py-3 !px-4;
+}
+
+.result-table :deep(.ant-table-row:hover > td) {
+  @apply bg-emerald-50;
+}
+
+.font-mono {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+</style>
