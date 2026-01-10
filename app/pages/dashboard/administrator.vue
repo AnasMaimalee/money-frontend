@@ -9,7 +9,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { 
   ProfileOutlined, CheckCircleOutlined, CloseCircleOutlined, 
   DollarCircleOutlined, NotificationOutlined, ReloadOutlined, 
-  ClockCircleOutlined, FileTextOutlined, BarChartOutlined
+  ClockCircleOutlined, FileTextOutlined, BarChartOutlined, HourglassOutlined
 } from '@ant-design/icons-vue'
 import type { TableColumnsType } from 'ant-design-vue/es/table/interface'
 
@@ -31,6 +31,11 @@ const serviceTotals = computed(() => {
   }
 })
 
+// Proper pending calculation
+const getPendingCount = (service: any) => {
+  return service.jobs - (service.completed || 0) - (service.rejected || 0)
+}
+
 // Service color mapping
 const serviceColors = {
   'JAMB Original Result': { bg: 'from-orange-500 to-orange-600', text: 'text-orange-600', icon: FileTextOutlined },
@@ -48,29 +53,29 @@ const serviceColumns: TableColumnsType = [
     width: 220,
     slots: { customRender: 'serviceCell' }
   },
-  { title: 'Total', dataIndex: 'jobs', key: 'jobs', align: 'right', width: 90, sorter: true },
+  { title: 'Total', dataIndex: 'jobs', key: 'jobs', align: 'right', width: 100, sorter: true },
   { 
-    title: '✅ Completed', 
+    title: 'Completed', 
     dataIndex: 'completed', 
     key: 'completed', 
     align: 'right', 
-    width: 110,
+    width: 130,
     sorter: true
   },
   { 
-    title: '⏳ Processing', 
-    key: 'processing', 
+    title: 'Pending',     
+    key: 'pending', 
     align: 'right', 
-    width: 110,
-    slots: { customRender: 'processingCell' },
+    width: 130,              
+    slots: { customRender: 'pendingCell' },  
     sorter: true
   },
   { 
-    title: '❌ Rejected', 
+    title: 'Rejected', 
     dataIndex: 'rejected', 
     key: 'rejected', 
     align: 'right', 
-    width: 100,
+    width: 130,              
     sorter: true
   },
   {
@@ -200,20 +205,20 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <!-- Stats -->
-            <div class="space-y-3 mb-6">
+            <!-- Stats - FIXED LARGER DISPLAY -->
+            <div class="space-y-4 mb-6">
               <div class="text-3xl font-black" :class="serviceColors[service.service]?.text || 'text-emerald-600'">
                 {{ service.jobs }}
               </div>
-              <div class="grid grid-cols-3 gap-2 text-sm">
-                <div class="text-emerald-600 font-semibold flex items-center gap-1">
-                  <CheckCircleOutlined class="text-xs" /> {{ service.completed }}
+              <div class="grid grid-cols-3 gap-3 text-base">
+                <div class="text-emerald-600 font-bold flex items-center gap-2 p-2 bg-emerald-50/50 rounded-xl shadow-sm">
+                  <CheckCircleOutlined class="text-lg" /> {{ service.completed }}
                 </div>
-                <div class="text-blue-600 font-semibold flex items-center gap-1">
-                  <ClockCircleOutlined class="text-xs" /> {{ service.jobs - service.completed - service.rejected }}
+                <div class="text-amber-600 font-bold flex items-center gap-2 p-2 bg-amber-50/50 rounded-xl shadow-sm">
+                  <HourglassOutlined class="text-lg" /> {{ getPendingCount(service) }}
                 </div>
-                <div class="text-red-500 font-semibold flex items-center gap-1">
-                  <CloseCircleOutlined class="text-xs" /> {{ service.rejected }}
+                <div class="text-red-500 font-bold flex items-center gap-2 p-2 bg-red-50/50 rounded-xl shadow-sm">
+                  <CloseCircleOutlined class="text-lg" /> {{ service.rejected }}
                 </div>
               </div>
             </div>
@@ -238,7 +243,7 @@ onUnmounted(() => {
         <!-- Detailed Services Table -->
         <Card class="!shadow-2xl !border-2 border-emerald-200/50 bg-white/70 backdrop-blur-xl">
           <Typography.Title level="4" class="!m-0 mb-6 flex items-center gap-3 text-emerald-800 font-black">
-            📊 Services Performance
+            Services Performance
             <span class="text-sm bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-semibold">
               {{ dashboardData?.jobs_by_service?.length || 0 }} Services
             </span>
@@ -255,18 +260,20 @@ onUnmounted(() => {
           >
             <template #serviceCell="{ record }">
               <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center shadow-md flex-shrink-0"
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-md flex-shrink-0"
                      :class="`bg-gradient-to-br ${serviceColors[record.service]?.bg || 'from-gray-400 to-gray-500'}`">
-                  <component :is="serviceColors[record.service]?.icon || ProfileOutlined" class="text-sm text-white" />
+                  <component :is="serviceColors[record.service]?.icon || ProfileOutlined" class="text-base text-white" />
                 </div>
                 <span class="font-semibold text-gray-800">{{ record.service }}</span>
               </div>
             </template>
-            <template #processingCell="{ record }">
-              <div class="font-mono font-bold text-blue-600 bg-blue-50/50 px-2 py-1 rounded-lg">
-                {{ record.jobs - record.completed - record.rejected }}
+            
+            <template #pendingCell="{ record }">
+              <div class="font-mono font-bold text-amber-600 bg-amber-50/70 px-3 py-2 rounded-xl shadow-md text-base">
+                {{ getPendingCount(record) }}
               </div>
             </template>
+            
             <template #progress="{ record }">
               <div class="flex flex-col items-center gap-1">
                 <div class="w-20 h-2 bg-gradient-to-r from-gray-200 to-gray-300 rounded-full overflow-hidden shadow-inner">
@@ -287,7 +294,7 @@ onUnmounted(() => {
         <div class="space-y-6">
           <Card class="!shadow-2xl !border-2 border-emerald-200/50 bg-white/70 backdrop-blur-xl">
             <Typography.Title level="4" class="!m-0 mb-6 flex items-center gap-3 text-emerald-800 font-black">
-              🔥 Recent Activity
+              Recent Activity
             </Typography.Title>
             <Table
               :columns="recentColumns"
@@ -303,7 +310,7 @@ onUnmounted(() => {
           <!-- System Status Cards -->
           <Card class="!shadow-2xl !border-2 border-emerald-200/50 bg-white/70 backdrop-blur-xl">
             <Typography.Title level="4" class="!m-0 mb-8 flex items-center gap-3 text-emerald-800 font-black">
-              🚨 System Health
+              System Health
             </Typography.Title>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div 
@@ -321,7 +328,7 @@ onUnmounted(() => {
                       {{ key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) }}
                     </div>
                     <div class="text-sm font-semibold" :class="flag ? 'text-red-600' : 'text-emerald-600'">
-                      {{ flag ? '⚠️ Action Required' : '✅ All Systems Normal' }}
+                      {{ flag ? 'Action Required' : 'All Systems Normal' }}
                     </div>
                   </div>
                 </div>
@@ -347,8 +354,9 @@ onUnmounted(() => {
 .admin-table :deep(.ant-table-thead th:nth-child(1)) { @apply !bg-gradient-to-r !from-orange-500 !to-orange-600; }
 .admin-table :deep(.ant-table-thead th:nth-child(2)) { @apply !bg-gradient-to-r !from-emerald-500 !to-emerald-600; }
 .admin-table :deep(.ant-table-thead th:nth-child(3)) { @apply !bg-gradient-to-r !from-blue-500 !to-blue-600; }
-.admin-table :deep(.ant-table-thead th:nth-child(4)) { @apply !bg-gradient-to-r !from-red-500 !to-red-600; }
-.admin-table :deep(.ant-table-thead th:nth-child(5)) { @apply !bg-gradient-to-r !from-teal-500 !to-emerald-600; }
+.admin-table :deep(.ant-table-thead th:nth-child(4)) { @apply !bg-gradient-to-r !from-amber-500 !to-amber-600; }
+.admin-table :deep(.ant-table-thead th:nth-child(5)) { @apply !bg-gradient-to-r !from-red-500 !to-red-600; }
+.admin-table :deep(.ant-table-thead th:nth-child(6)) { @apply !bg-gradient-to-r !from-teal-500 !to-emerald-600; }
 
 .admin-table :deep(.ant-table-tbody td) {
   @apply !py-4 !px-4 border-t border-emerald-100/30 hover:!bg-emerald-50/30 transition-colors;
