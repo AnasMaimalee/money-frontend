@@ -8,7 +8,29 @@ export default defineNuxtConfig({
     '@nuxtjs/tailwindcss',
     '@pinia/nuxt',
     'nuxt-icon',
-  ],
+  ],vite: {
+  server: {
+    host: true,
+    strictPort: true,
+
+    // ✅ allow ngrok domain
+    allowedHosts: true,
+
+    // ✅ disable filesystem restriction (required for Nuxt dev)
+    fs: {
+      strict: false
+    },
+
+    // ✅ disable origin check (THIS IS THE MISSING PART)
+    cors: true,
+
+    // ✅ HMR fix for ngrok
+    hmr: {
+      protocol: 'wss',
+      clientPort: 443
+    }
+  }
+},
 
   nitro: {
     host: '0.0.0.0',  // ✅ ALL interfaces
@@ -20,13 +42,14 @@ export default defineNuxtConfig({
   },
 
   // ✅ SINGLE runtimeConfig BLOCK
-  runtimeConfig: {
-    public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000/api',
-      appName: 'JAMB Portal',
-      appDescription: 'Print JAMB Original Results, Admission Letters & Check Status',
-    },
+ runtimeConfig: {
+  public: {
+     apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000/api',
+     appName: 'JAMB Portal',
+     appDescription: 'Print JAMB Original Results, Admission Letters & Check Status',
   },
+},
+
 
   imports: {
     dirs: ['./stores'],

@@ -2,7 +2,7 @@ export default defineNuxtPlugin(() => {
   const authStore = useAuthStore()
 
   const api = $fetch.create({
-    baseURL: 'http://localhost:8000/api',
+    baseURL: 'https://plate-impressed-verse-moss.trycloudflare.com/api',
 
     onRequest({ options }) {
       if (authStore.token) {

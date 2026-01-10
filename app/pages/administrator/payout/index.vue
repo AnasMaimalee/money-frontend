@@ -86,6 +86,8 @@ definePageMeta({
   middleware: 'auth',
   roles: ['administrator'],
 })
+import { message } from 'ant-design-vue'
+
 
 const { $api } = useNuxtApp()
 
@@ -134,15 +136,24 @@ const fetchPayoutRequests = async () => {
 const requestPayout = async () => {
   requestingPayout.value = true
   try {
-    await $api.post('/admin/payout/request', { amount: Number(payoutAmount.value) })
+    // ✅ CORRECT SYNTAX - Use method: 'POST' with $api
+    await $api('/admin/payout/request', { 
+      method: 'POST',
+      body: { amount: Number(payoutAmount.value) }
+    })
+    
     showPayoutModal.value = false
     payoutAmount.value = ''
     fetchWallet()
     fetchPayoutRequests()
+    message.success('Payout requested successfully!')
+  } catch (err: any) {
+    message.error(err.data?.message || 'Payout request failed')
   } finally {
     requestingPayout.value = false
   }
 }
+
 
 const fetchWallet = async () => {
   try {
